@@ -1,0 +1,7 @@
+git
+nginx
+supervisor
+ffmpeg
+libboost-all-dev
+libtag1-dev
+zlib1g-dev

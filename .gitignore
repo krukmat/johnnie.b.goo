@@ -1,0 +1,20 @@
+# Created by .ignore support plugin (hsz.mobi)
+venv
+tags
+/nltk_data
+/static
+/var
+*.pyc
+*.log
+*.swp
+*.bak
+*.coverage
+*.ropeproject
+.vagrant
+.vim.local
+.idea
+.DS_Store
+.sass-cache
+addnow/settings/__init__.py
+data
+mj.mp3
