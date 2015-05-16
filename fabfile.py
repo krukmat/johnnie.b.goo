@@ -12,6 +12,8 @@ import fabtools
 
 __author__ = 'matiasleandrokruk'
 
+LOG_PATH = '/var/log/supervisor/%s.log'
+
 ################
 # Config setup #
 ################
@@ -32,14 +34,26 @@ env.debian_packages = "debian_packages.txt"
 env.git_url = 'ssh://krukmat@github.com/krukmat/johnnie.b.goo.git'
 
 env.python = 'python'
-env.virtualenv_path = 'venv'
+env.virtualenv_path = os.path.join('venv')
 env.nodeenv_path = os.path.join('~', 'nenv')
-env.project_path = os.path.join('~', env.project_name)
+env.project_path = os.path.join('/home/vagrant', env.project_name)
+env.project_wsgi = '.'.join(['api', 'api'])
 
 env.django_static_url = '/static/'
 env.django_static_root = os.path.join(env.project_path, 'static/')
 env.cdn_static_root = os.path.join(env.project_path, 'dummy/cdn/')
 env.user_site_static_root = os.path.join(env.project_path, 'dummy/usersite/')
+
+env.uwsgi_socket_dir = '/tmp/'
+env.uwsgi_socket = os.path.join(env.uwsgi_socket_dir, 'uwsgi.sock')
+env.uwsgi_socket_web = os.path.join(env.uwsgi_socket_dir, 'web.sock')
+
+
+env.django_static_url = '/static/'
+env.django_static_root = os.path.join(env.project_path, 'static/')
+env.cdn_static_root = os.path.join(env.project_path, 'dummy/cdn/')
+env.user_site_static_root = os.path.join(env.project_path, 'dummy/usersite/')
+
 
 env.config_file = '__init__.py'
 env.local_config_file = 'local.py'
@@ -60,8 +74,182 @@ def environment(func):
 @environment
 def production():
     """[ENV]"""
-    env.hosts = ['54.164.56.152']
+    env.hosts = ['0.0.0.0']
     env.django_settings = 'webserver.settings.prod'
+
+
+@task
+def configure_supervisor():
+    """Configure supervisor processes"""
+
+    SUPERVISOR_TASKS = dict(
+        django={},
+    )
+
+    require_env('project_path', 'virtualenv_path', 'frontend_ip',
+                'django_settings', 'project_user')
+
+    SUPERVISOR_TASKS['django']['command'] = (
+        '/home/vagrant/jbg/venv/bin/uwsgi --module %s.wsgi --socket %s --chmod-socket=666'
+        % (env.project_wsgi, env.uwsgi_socket))
+    print SUPERVISOR_TASKS['django']['command']
+
+    for process_name, command in SUPERVISOR_TASKS.iteritems():
+
+        kwargs = dict(
+            directory=env.project_path,
+            environment='PYTHONPATH="%s"' % os.path.join(env.project_path, 'api'),
+            autostart='true',
+            autorestart='false',
+            startsecs=3,
+            user=env.supervisor_user,
+            loglevel='debug',
+            virtualenv='/home/vagrant/jbg/venv/',
+        )
+
+        if isinstance(command, str):
+            command = dict(command=command)
+
+        command['command'] = command['command'].format(env.virtualenv_path)
+
+        process_kwargs = kwargs.copy()
+
+        process_kwargs.update(
+            stdout_logfile=LOG_PATH % process_name,
+            **command
+        )
+
+        fabtools.require.file('/var/log/%s.log' % (process_name))
+
+        for key in process_kwargs:
+            if callable(process_kwargs[key]):
+                process_kwargs[key] = process_kwargs[key]()
+
+        fabtools.require.supervisor.process(process_name, **process_kwargs)
+
+    # autostart: attached supervisord for /etc/init.d/ if needed
+    if not exists('/etc/init.d/supervisor', use_sudo=True):
+        sudo('update-rc.d supervisor defaults')
+
+@task
+def restart_supervisor():
+    sudo('service supervisor restart')
+
+
+@task
+def configure_nginx():
+    """Configure nginx"""
+    require_env('django_static_url', 'django_static_root', 'cdn_static_root',
+                'user_site_static_root', 'uwsgi_socket',
+                'uwsgi_socket_web')
+
+    django_config = """
+            upstream django {
+                server unix://%(uwsgi_socket)s;
+            }
+
+            upstream web {
+                server unix://%(uwsgi_socket_web)s;
+            }
+
+            server {
+                listen %(port)s;
+                server_name %(server_name)s;
+
+                access_log /var/log/nginx/%(server_name)s.log;
+                error_log /var/log/nginx/%(server_name)s_error.log;
+
+                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                proxy_set_header Host $http_host;
+
+                location /static/ {
+                    alias %(django_static_root)s;
+                    sendfile off;
+                }
+
+
+                location / {
+                    uwsgi_pass  django;
+                    include     uwsgi_params;
+                }
+
+                location /web/ {
+                    rewrite /web/(.+) /$1 break;
+                    uwsgi_pass web;
+                    include    uwsgi_params;
+                }
+
+            }
+        """
+
+    static_config = """
+            server {
+                listen %(port)s;
+                server_name %(server_name)s;
+
+                access_log /var/log/nginx/%(server_name)s.log;
+                error_log /var/log/nginx/%(server_name)s_error.log;
+
+                location / {
+                    alias %(static_root)s;
+                    sendfile off;
+                }
+            }
+        """
+
+    live_config = """
+            server {
+                listen %(port)s;
+                server_name %(server_name)s;
+
+                access_log /var/log/nginx/%(server_name)s.log;
+                error_log /var/log/nginx/%(server_name)s_error.log;
+
+                location %(location)s {
+                    proxy_pass http://127.0.0.1:9000/;
+                }
+            }
+        """
+
+    django_kwargs = dict(
+        port=80,
+        django_static_url=env.django_static_url,
+        django_static_root=env.django_static_root,
+        uwsgi_socket=env.uwsgi_socket,
+        uwsgi_socket_web=env.uwsgi_socket_web,
+        )
+
+    cdn_kwargs = dict(
+        port=80,
+        static_root=env.cdn_static_root
+    )
+
+    user_site_kwargs = dict(
+        port=80,
+        static_root=env.user_site_static_root,
+        )
+
+    cdn_live_kwargs = dict(
+        port=80,
+        location='/widget/',
+        )
+
+    user_site_live_kwargs = dict(
+        port=80,
+        location='/',
+        )
+
+    fabtools.require.nginx.server()
+    fabtools.require.nginx.disable('default')
+
+    fabtools.require.nginx.site('jbg.dev', django_config, **django_kwargs)
+    fabtools.require.nginx.site('cdn.jbg.dev', static_config, **cdn_kwargs)
+    fabtools.require.nginx.site('jbg.usersite.dev', static_config,
+                                **user_site_kwargs)
+    fabtools.require.nginx.site('cdn.jbg.live', live_config,
+                                **cdn_live_kwargs)
+    fabtools.require.nginx.site('jbg.usersite.live', live_config,
+                                **user_site_live_kwargs)
 
 @task
 @environment
@@ -70,6 +258,9 @@ def vagrant(name=''):
     from fabtools.vagrant import vagrant as _vagrant
     _vagrant(name)
     env.project_user = 'vagrant'
+    env.supervisor_user = 'vagrant'
+    env.supervisor_apps = ['django', 'web']
+    env.django_settings = 'api.api.settings'
 
 
 def _print(output):
@@ -138,7 +329,6 @@ def install_virtualenv():
     # Make shortcut
     sudo('ln -sf %s %s' % (env.virtualenv_path, os.path.join(env.project_path, 'venv')))
 
-
 @task
 def install_git_repository(branch=None):
     require_env('project_path', 'git_url')
@@ -202,6 +392,8 @@ def install():
     install_debian_packages()
     install_echo_point()
     install_python_modules()
+    configure_nginx()
+    configure_supervisor()
 
 @task
 def update():

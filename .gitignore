@@ -18,3 +18,4 @@ tags
 addnow/settings/__init__.py
 data
 mj.mp3
+api/db.sqlite3

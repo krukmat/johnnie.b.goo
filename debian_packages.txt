@@ -5,3 +5,5 @@ ffmpeg
 libboost-all-dev
 libtag1-dev
 zlib1g-dev
+build-essential
+python-dev
