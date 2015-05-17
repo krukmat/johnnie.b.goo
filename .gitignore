@@ -17,5 +17,5 @@ tags
 .sass-cache
 addnow/settings/__init__.py
 data
-billie_jean.mp3
+bj.mp3
 api/db.sqlite3
