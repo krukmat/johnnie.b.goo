@@ -7,3 +7,5 @@ libtag1-dev
 zlib1g-dev
 build-essential
 python-dev
+openjdk-6-jdk
+libbz2-dev

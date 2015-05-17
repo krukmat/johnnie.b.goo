@@ -84,6 +84,8 @@ def configure_supervisor():
 
     SUPERVISOR_TASKS = dict(
         django={},
+        solr={},
+        tokyo={},
     )
 
     require_env('project_path', 'virtualenv_path', 'frontend_ip',
@@ -92,12 +94,24 @@ def configure_supervisor():
     SUPERVISOR_TASKS['django']['command'] = (
         '/home/vagrant/jbg/venv/bin/uwsgi --module %s.wsgi --socket %s --chmod-socket=666'
         % (env.project_wsgi, env.uwsgi_socket))
-    print SUPERVISOR_TASKS['django']['command']
 
-    for process_name, command in SUPERVISOR_TASKS.iteritems():
+    SUPERVISOR_TASKS['django']['directory'] = env.project_path
+
+    SUPERVISOR_TASKS['solr']['command'] = (
+        'java -Dsolr.solr.home=/home/vagrant/echoprint-server/solr/solr/solr/ -Djava.awt.headless=true -jar start.jar'
+    )
+    SUPERVISOR_TASKS['solr']['directory'] = '/home/vagrant/echoprint-server/solr/solr'
+
+    SUPERVISOR_TASKS['tokyo']['command'] = 'sudo ttservctl start'
+    SUPERVISOR_TASKS['tokyo']['directory'] = '.'
+
+    #SUPERVISOR_TASKS['API']['command'] = 'python api.py 9999'
+    #SUPERVISOR_TASKS['API']['directory'] = '/home/vagrant/echoprint-server/API'
+
+    for process_name, options in SUPERVISOR_TASKS.iteritems():
 
         kwargs = dict(
-            directory=env.project_path,
+            directory=options['directory'],
             environment='PYTHONPATH="%s"' % os.path.join(env.project_path, 'api'),
             autostart='true',
             autorestart='false',
@@ -107,16 +121,13 @@ def configure_supervisor():
             virtualenv='/home/vagrant/jbg/venv/',
         )
 
-        if isinstance(command, str):
-            command = dict(command=command)
-
-        command['command'] = command['command'].format(env.virtualenv_path)
+        options['command'] = options['command'].format(env.virtualenv_path)
 
         process_kwargs = kwargs.copy()
 
         process_kwargs.update(
             stdout_logfile=LOG_PATH % process_name,
-            **command
+            **options
         )
 
         fabtools.require.file('/var/log/%s.log' % (process_name))
@@ -384,12 +395,42 @@ def install_echo_point():
 
 
 @task
+def install_tokyo_cabinet():
+    with cd('/home/vagrant'):
+        run('wget http://fallabs.com/tokyocabinet/tokyocabinet-1.4.48.tar.gz')
+        run('tar -xzf tokyocabinet-1.4.48.tar.gz')
+        with cd('./tokyocabinet-1.4.48'):
+            run('./configure')
+            run('make clean')
+            run('make')
+            sudo('make install')
+
+@task
+def install_tokyo_tyrant():
+    with cd('/home/vagrant'):
+        run('wget http://fallabs.com/tokyotyrant/tokyotyrant-1.1.41.tar.gz')
+        run('tar -xzf tokyotyrant-1.1.41.tar.gz')
+        with cd('./tokyotyrant-1.1.41'):
+            run('./configure')
+            run('make clean')
+            run('make')
+            sudo('make install')
+
+@task
+def install_server():
+    run("git clone -q https://github.com/echonest/echoprint-server.git")
+
+
+@task
 def install():
     run('sudo add-apt-repository ppa:mc3man/trusty-media')
     run('sudo apt-get update')
     install_git_repository()
     install_virtualenv()
     install_debian_packages()
+    install_tokyo_cabinet()
+    install_tokyo_tyrant()
+    install_server()
     install_echo_point()
     install_python_modules()
     configure_nginx()
@@ -400,3 +441,4 @@ def update():
     install_debian_packages()
     install_virtualenv()
     install_python_modules()
+    restart_supervisor()
