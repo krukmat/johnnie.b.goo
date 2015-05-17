@@ -65,9 +65,10 @@ def query(request):
     else:
         code_string = fp_code
 
-    response = fp.best_match_for_query(fp_code)
+    response = fp.best_match_for_query(code_string)
     metadata = response.metadata
-    metadata.pop('import_date')
+    if metadata:
+        metadata.pop('import_date')
     data = json.dumps({"ok": True, "message": response.message(), "match": response.match(),
                        "score": response.score, \
                        "qtime": response.qtime, "track_id": response.TRID,
