@@ -167,6 +167,8 @@ def configure_nginx():
                 listen %(port)s;
                 server_name %(server_name)s;
 
+                client_max_body_size 50M;
+
                 access_log /var/log/nginx/%(server_name)s.log;
                 error_log /var/log/nginx/%(server_name)s_error.log;
 

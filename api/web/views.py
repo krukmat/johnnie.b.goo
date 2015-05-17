@@ -1,47 +1,53 @@
 import json
 import sys
 from django.http.response import HttpResponse
+from django.views.decorators.csrf import csrf_exempt
 
 sys.path.append('/home/vagrant/echoprint-server/API')
 import fp
 import re
+from utils import *
 
 # Create your views here.
 
 
+@csrf_exempt
 def ingest(request):
     params = request.POST
+    mp3 = request.FILES['mp3']
     # TODO: Convert music -> fingerprint code
+    fp_code = generate_fingerprint(mp3)
     if params['track_id'] == "default":
         track_id = fp.new_track_id()
     else:
         track_id = params.track_id
-    if params['length'] is None or params['codever'] is None:
+    if params['length'] is None:
         return HttpResponse("Invalid data", status=400)
 
     # First see if this is a compressed code
-    if re.match('[A-Za-z\/\+\_\-]', params['fp_code']) is not None:
-        code_string = fp.decode_code_string(params['fp_code'])
+    if re.match('[A-Za-z\/\+\_\-]', fp_code) is not None:
+        code_string = fp.decode_code_string(fp_code)
         if code_string is None:
             result = json.dumps( {"track_id": track_id, "ok": False,
-                                "error": "cannot decode code string %s" % params['fp_code']})
+                                  "error": "cannot decode code string %s" % fp_code})
             return HttpResponse(result, status=400)
     else:
-        code_string = params['fp_code']
+        code_string = fp_code
 
     data = {"track_id": track_id,
             "fp": code_string,
-            "length": params.length,
-            "codever": params.codever}
-    if params['artist']:
+            "length": params['length'],
+            "codever": params['codever']}
+    if params.get('artist'):
         data["artist"] = params.artist
-    if params['release']:
+    if params.get('release'):
         data["release"] = params.release
-    if params['track']:
+    if params.get('track'):
         data["track"] = params.track
     fp.ingest(data, do_commit=True, local=False)
 
-    return json.dumps({"track_id": track_id, "status": "ok"})
+    data = json.dumps({"track_id": track_id, "fp": fp_code,"status": "ok"})
+    return HttpResponse(data, status=200)
 
 
 def query(request):
