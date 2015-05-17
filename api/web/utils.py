@@ -8,5 +8,5 @@ def generate_fingerprint(mp3_file):
     outputstring = process.communicate()[0]
     data = json.loads(outputstring)
     if data[0].get('error'):
-        raise Exception(data[0].get('error'))
+        return data[0]['error']
     return data[0]['code']

@@ -17,6 +17,8 @@ def ingest(request):
     mp3 = request.FILES['mp3']
     # TODO: Convert music -> fingerprint code
     fp_code = generate_fingerprint(mp3)
+    if fp_code is dict:
+        return HttpResponse(fp_code['error'], status=400)
     if params['track_id'] == "default":
         track_id = fp.new_track_id()
     else:
@@ -55,7 +57,8 @@ def query(request):
     mp3 = request.FILES['mp3']
     # TODO: Convert music -> fingerprint code
     fp_code = generate_fingerprint(mp3)
-
+    if fp_code is dict:
+        return HttpResponse(fp_code['error'], status=400)
     # First see if this is a compressed code
     if re.match('[A-Za-z\/\+\_\-]', fp_code) is not None:
         code_string = fp.decode_code_string(fp_code)
