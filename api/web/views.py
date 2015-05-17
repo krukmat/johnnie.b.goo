@@ -50,10 +50,27 @@ def ingest(request):
     return HttpResponse(data, status=200)
 
 
+@csrf_exempt
 def query(request):
-    fp_code = request.GET['fp_code']
+    mp3 = request.FILES['mp3']
+    # TODO: Convert music -> fingerprint code
+    fp_code = generate_fingerprint(mp3)
+
+    # First see if this is a compressed code
+    if re.match('[A-Za-z\/\+\_\-]', fp_code) is not None:
+        code_string = fp.decode_code_string(fp_code)
+        if code_string is None:
+            result = json.dumps({"error": "cannot decode code string %s" % fp_code})
+            return HttpResponse(result, status=400)
+    else:
+        code_string = fp_code
+
     response = fp.best_match_for_query(fp_code)
-    data = json.dumps({"ok": True, "query": fp_code, "message": response.message(), "match": response.match(),
+    metadata = response.metadata
+    metadata.pop('import_date')
+    data = json.dumps({"ok": True, "message": response.message(), "match": response.match(),
                        "score": response.score, \
-                       "qtime": response.qtime, "track_id": response.TRID, "total_time": response.total_time})
+                       "qtime": response.qtime, "track_id": response.TRID,
+                       "total_time": response.total_time,
+                       "metadata": metadata})
     return HttpResponse(data, status=200)
