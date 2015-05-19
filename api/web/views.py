@@ -55,7 +55,7 @@ def ingest(request):
 @csrf_exempt
 def query(request):
     mp3 = request.FILES['mp3']
-    # TODO: Convert music -> fingerprint code
+    # Convert music -> fingerprint code
     fp_code = generate_fingerprint(mp3)
     if fp_code is dict:
         return HttpResponse(fp_code['error'], status=400)

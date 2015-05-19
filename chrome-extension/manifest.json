@@ -1,0 +1,16 @@
+{
+  "name": "Johnnie B. Goode - API Handler",
+  "version": "0.1",
+  "description": "This is the extension to handle JBG API",
+  "icons": {
+    "128": "images/icon.png",
+    "48": "images/icon.png",
+    "16": "images/icon.png"
+  },
+  "browser_action": {
+    "default_icon": "images/icon.png",
+    "default_popup": "popup.html"
+  },
+  "permissions": ["http://jbg.dev:8088/"],
+  "manifest_version": 2
+}

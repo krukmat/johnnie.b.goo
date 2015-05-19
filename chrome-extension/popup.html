@@ -1,0 +1,15 @@
+<!doctype html>
+<head>
+  <style>
+    body { width: 300px; }
+  </style>
+</head>
+<body>
+  <form action="http://jbg.dev:8088/query/" method="post" enctype="multipart/form-data">
+    <label>Select a File to Upload</label> <input id="mp3" type="file" name="mp3" />
+    <input type="button" value="Check" name='check' id='check' />
+  </form>
+  <div id="response" name="response"></div>
+  <script src="jquery.js"></script>
+  <script src="popup.js"></script>
+</body>
