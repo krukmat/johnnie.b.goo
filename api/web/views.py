@@ -19,11 +19,11 @@ def ingest(request):
     fp_code = generate_fingerprint(mp3)
     if fp_code is dict:
         return HttpResponse(fp_code['error'], status=400)
-    if params['track_id'] == "default":
+    if params.get('track_id', "default") == "default":
         track_id = fp.new_track_id()
     else:
-        track_id = params.track_id
-    if params['length'] is None:
+        track_id = params['track_id']
+    if not params.get('length', None):
         return HttpResponse("Invalid data", status=400)
 
     # First see if this is a compressed code
@@ -41,11 +41,11 @@ def ingest(request):
             "length": params['length'],
             "codever": params['codever']}
     if params.get('artist'):
-        data["artist"] = params.artist
+        data["artist"] = params.get('artist')
     if params.get('release'):
-        data["release"] = params.release
+        data["release"] = params.get('release')
     if params.get('track'):
-        data["track"] = params.track
+        data["track"] = params.get('track')
     fp.ingest(data, do_commit=True, local=False)
 
     data = json.dumps({"track_id": track_id, "fp": fp_code,"status": "ok"})

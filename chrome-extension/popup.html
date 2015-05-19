@@ -5,9 +5,13 @@
   </style>
 </head>
 <body>
-  <form action="http://jbg.dev:8088/query/" method="post" enctype="multipart/form-data">
-    <label>Select a File to Upload</label> <input id="mp3" type="file" name="mp3" />
-    <input type="button" value="Check" name='check' id='check' />
+  <form action="http://jbg.dev:8088/query/" method="post" enctype="multipart/form-data" name="form" id="form">
+    <label>Select a File to Upload</label> <input id="mp3" type="file" name="mp3" /><BR/>
+    <label>Artist</label> <input id="artist" type="text" name="artist" /><BR/>
+    <label>Release</label> <input id="release" type="text" name="release" /><BR/>
+    <label>Track</label> <input id="track" type="text" name="track" /><BR/>
+    <input type="button" value="Check" name='check' id='check' /><BR/>
+    <input type="button" value="Ingest" name='ingest' id='ingest' /><BR/>
   </form>
   <div id="response" name="response"></div>
   <script src="jquery.js"></script>
