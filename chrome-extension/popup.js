@@ -32,8 +32,11 @@ function query() {
       object = JSON.parse(data)
       if (object.error !== undefined)
           $('#response').text(object.error);
-      else
+      else{
           $('#response').text('Track_id:'+object.metadata.track_id);
+          console.log(object.metadata);
+          chrome.tabs.create({url:'http://www.songsterr.com/a/wa/search?pattern='+object.metadata.artist+'+'+object.metadata.track});
+      }
     });
 }
 
