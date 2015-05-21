@@ -1,19 +1,28 @@
 <!doctype html>
 <head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="bootstrap/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="bootstrap/css/bootstrap-theme.min.css">
+  <script src="jquery.js"></script>
+  <script src="bootstrap/js/bootstrap.min.js"></script>
+  <script src="bootstrap/js/bootbox.min.js"></script>
   <style>
     body { width: 300px; }
   </style>
 </head>
 <body>
   <form action="http://jbg.dev:8088/query/" method="post" enctype="multipart/form-data" name="form" id="form">
-    <label>Select a File to Upload</label> <input id="mp3" type="file" name="mp3" /><BR/>
-    <label>Artist</label> <input id="artist" type="text" name="artist" /><BR/>
-    <label>Release</label> <input id="release" type="text" name="release" /><BR/>
-    <label>Track</label> <input id="track" type="text" name="track" /><BR/>
-    <input type="button" value="Check" name='check' id='check' /><BR/>
-    <input type="button" value="Ingest" name='ingest' id='ingest' /><BR/>
+
+    <dt><label>Select a File to Upload</label></dt><dl><input id="mp3" type="file" name="mp3" /></dl>
+    <div class="control-group">
+      <div class="controls">
+        <button type="button" value="Check" name='check' id='check' class="btn btn-success">Query</button>
+        <button type="button" value="Ingest" name='ingest' id='ingest' class="btn btn-danger">Ingest</button>
+      </div>
+    </div>
   </form>
   <div id="response" name="response"></div>
-  <script src="jquery.js"></script>
   <script src="popup.js"></script>
 </body>

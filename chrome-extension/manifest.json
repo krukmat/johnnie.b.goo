@@ -11,6 +11,7 @@
     "default_icon": "images/icon.png",
     "default_popup": "popup.html"
   },
-  "permissions": ["http://jbg.dev:8088/"],
-  "manifest_version": 2
+  "permissions": ["http://jbg.dev:8088/", "storage"],
+  "manifest_version": 2,
+  "options_page": "options.html"
 }
