@@ -1,9 +1,10 @@
 # johnnie.b.goo
 A cool app to get information from audio file to music data. Also the possibility to hook to different APIs
 
-How to use it locally? (Linux - Mac)
-------------------------------------
+# How to use it locally? (Linux - Mac)
+-------------------------------------
 * git clone or download project.
+
 Server:
 ------
 * Install vagrant
