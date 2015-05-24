@@ -86,6 +86,7 @@ def configure_supervisor():
         django={},
         solr={},
         tokyo={},
+        workers={}
     )
 
     require_env('project_path', 'virtualenv_path', 'frontend_ip',
@@ -105,8 +106,10 @@ def configure_supervisor():
     SUPERVISOR_TASKS['tokyo']['command'] = 'sudo ttservctl start'
     SUPERVISOR_TASKS['tokyo']['directory'] = '.'
 
-    #SUPERVISOR_TASKS['API']['command'] = 'python api.py 9999'
-    #SUPERVISOR_TASKS['API']['directory'] = '/home/vagrant/echoprint-server/API'
+    SUPERVISOR_TASKS['workers']['command'] = (
+        '%s/bin/run_celery' % env.project_path
+    )
+    SUPERVISOR_TASKS['workers']['directory'] = env.project_path
 
     for process_name, options in SUPERVISOR_TASKS.iteritems():
 
@@ -274,6 +277,7 @@ def vagrant(name=''):
     env.supervisor_user = 'vagrant'
     env.supervisor_apps = ['django', 'web']
     env.django_settings = 'api.api.settings'
+    env.django_path = '/home/vagrant/jbg/api'
 
 
 def _print(output):
@@ -366,6 +370,15 @@ def project():
         with cd(env.project_path):
             yield
 
+@contextmanager
+def api_path():
+    """Runs commands within the project's directory."""
+    require_env('project_path', 'virtualenv_path')
+
+    with fabtools.python.virtualenv(env.virtualenv_path):
+        with cd(env.django_path):
+            yield
+
 @task
 def install_python_modules():
     with project():
@@ -437,6 +450,14 @@ def install():
     install_python_modules()
     configure_nginx()
     configure_supervisor()
+
+@task
+def django_manage(command, *args, **kwargs):
+    with api_path():
+        str_args = ' '.join(args)
+        str_kwargs = ' '.join(['%s=%s' % (k, v) for k, v in kwargs.items()])
+        run('DJANGO_SETTINGS_MODULE="%s" python manage.py %s %s %s' %
+                ("api.shell_settings", command, str_args, str_kwargs))
 
 @task
 def update():

@@ -9,3 +9,6 @@ build-essential
 python-dev
 openjdk-6-jdk
 libbz2-dev
+sox
+libsox-fmt-mp3
+rabbitmq-server

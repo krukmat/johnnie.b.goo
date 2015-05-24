@@ -1,0 +1,9 @@
+#!/bin/bash
+
+DIR="$( cd -P "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+DIR="$( cd -P "$( dirname "${DIR}" )" && pwd )"
+VENV_DIR="${DIR}/venv"
+
+cd $DIR
+
+exec "${VENV_DIR}/bin/python" "/home/vagrant/jbg/api/manage.py" celery worker -A api -l info --concurrency=4 -Q celery
