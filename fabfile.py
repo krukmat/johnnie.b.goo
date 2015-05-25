@@ -435,6 +435,21 @@ def install_tokyo_tyrant():
 def install_server():
     run("git clone -q https://github.com/echonest/echoprint-server.git")
 
+@task
+def configure_redis():
+    """Configure redis via supervisor"""
+
+    kwargs = dict(
+        command='redis-server',
+        stdout_logfile='/var/log/supervisor/redis.log',
+        user='root',
+        exitcodes='0',
+        startsecs=1,
+        autorestart='unexpected',
+        startretries=1,
+        priority=1
+    )
+    fabtools.require.supervisor.process('redis', **kwargs)
 
 @task
 def install():
@@ -449,6 +464,7 @@ def install():
     install_echo_point()
     install_python_modules()
     configure_nginx()
+    configure_redis()
     configure_supervisor()
 
 @task

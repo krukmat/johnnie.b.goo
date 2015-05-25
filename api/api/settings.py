@@ -110,7 +110,7 @@ STATIC_URL = '/static/'
 # CELERY
 CELERY_ALWAYS_EAGER = False
 BROKER_URL = 'amqp://guest:guest@localhost:5672//'
-CELERY_RESULT_BACKEND = None
+CELERY_RESULT_BACKEND = 'redis://'
 
 
 # Only add pickle to this list if your broker is secured

@@ -12,3 +12,4 @@ libbz2-dev
 sox
 libsox-fmt-mp3
 rabbitmq-server
+redis-server

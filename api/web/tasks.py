@@ -1,37 +1,62 @@
-from djcelery.app import app
+import subprocess
+from celery.canvas import chain, group
 
 __author__ = 'matiasleandrokruk'
 import requests
-import youtube_dl as ydl
+import youtube_dl
+from bs4 import BeautifulSoup
+from djcelery.app import app
 
 
-# TODO: Testearlo
-def search_youtube_links(self, name):
+def search_youtube_links(name):
     req = requests.get("http://www.youtube.com/results?", params={"search_query": "%s" % (name)})
-    soup = Soup(req.text)
+    soup = BeautifulSoup(req.text)
     links = []
-    body = soup.find('ol', {'id': "search-results"})
-    k = body.a
+    body = soup.find('div', {'id': "results"})
+    li = body.find('ol').find('ol').find('li')
+    k = li.find('h3', {'class': 'yt-lockup-title'}).find('a')
     links.append(k.get('href'))
     return "https://www.youtube.com" + links[0]
 
 @app.task
-def scrape():
+def scrape(name, folder):
+    link = search_youtube_links(name)
     # busqueda basada en artista - track
-    result = ydl.extract_info('https://www.youtube.com/watch?v=Zi_XLOBDo_Y', download=False)
+    ydl = youtube_dl.YoutubeDL({'outtmpl': '%(id)s%(ext)s'})
+    # Add all the available extractors
+    ydl.add_default_info_extractors()
+    result = ydl.extract_info(link, download=False)
     for format in result['formats']:
         if format['ext'] == 'm4a':
             url = format['url']
             r = requests.get(url, stream=True)
             chunk_size = 1000
             filename = result['display_id']+'.mp3'
-            with open(filename, 'wb') as fd:
+            with open('/%s/%s'%(folder, filename,), 'wb') as fd:
                 for chunk in r.iter_content(chunk_size):
                     fd.write(chunk)
             break
+    return filename
+
+@app.task
+def generate_tasks(file_list):
+    # Generate random folder
+    folder = 'tmp'
+    # for every list in file_list create a scrape. Do a pipe?
+    files_generated = group((scrape.s(track, folder) for track in file_list))
+    (files_generated | generate_report.s())()
+    return True
+
+@app.task
+def generate_report(results):
+    for file in results:
+        print "file: %s" % (file,)
+        # After all files created => call echo-fingerprint bulk process
+        # delete all files in folder
 
 
-# for i in *mp3;do python cut_end.py ffmpeg -i $i.mp3 -ss 0:0:0 -t 0:0:30 $i.mp3;done
+
+        # for i in *mp3;do python cut_end.py ffmpeg -i $i.mp3 -ss 0:0:0 -t 0:0:30 $i.mp3;done
 # crear .txt con listado
 # borrar los archivos mp3 creados
 # llamar tambien al bulk processor de echo-fingerprint

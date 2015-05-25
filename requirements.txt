@@ -8,3 +8,4 @@ youtube_dl==2015.05.20
 celery==3.1.17
 django-celery==3.1.16
 subprocess32==3.2.6
+redis==2.10.3
