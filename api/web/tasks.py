@@ -1,7 +1,8 @@
-import subprocess
-from celery.canvas import chain, group
-
 __author__ = 'matiasleandrokruk'
+
+from celery.canvas import group
+import random
+from utils import generate_fingerprint_from_list, delete_file
 import requests
 import youtube_dl
 from bs4 import BeautifulSoup
@@ -18,6 +19,7 @@ def search_youtube_links(name):
     links.append(k.get('href'))
     return "https://www.youtube.com" + links[0]
 
+
 @app.task
 def scrape(name, folder):
     link = search_youtube_links(name)
@@ -32,11 +34,12 @@ def scrape(name, folder):
             r = requests.get(url, stream=True)
             chunk_size = 1000
             filename = result['display_id']+'.mp3'
-            with open('/%s/%s'%(folder, filename,), 'wb') as fd:
+            with open('/%s/%s' % (folder, filename,), 'wb') as fd:
                 for chunk in r.iter_content(chunk_size):
                     fd.write(chunk)
             break
-    return filename
+    return name, '/%s/%s' % (folder, filename,)
+
 
 @app.task
 def generate_tasks(file_list):
@@ -47,16 +50,28 @@ def generate_tasks(file_list):
     (files_generated | generate_report.s())()
     return True
 
+
 @app.task
 def generate_report(results):
-    for file in results:
-        print "file: %s" % (file,)
-        # After all files created => call echo-fingerprint bulk process
-        # delete all files in folder
+    random_sufix = random.randint(1, 10000)
+    report_filename = '/tmp/report_%s' % (random_sufix,)
+    # create summary files list
+    with open(report_filename, 'wb') as fd:
+        for name, _file in results:
+            fd.write("%s\n" % (_file,))
+    # After all files created => call echo-fingerprint bulk process
+    generate_fingerprint_from_list(report_filename)
+    # TODO: Import allcodes.json. Missing metadata (artist, track)
+    # delete all files in folder
+    for name, _file in results:
+        delete_file(_file)
+    # delete report file
+    delete_file(report_filename)
 
 
 
-        # for i in *mp3;do python cut_end.py ffmpeg -i $i.mp3 -ss 0:0:0 -t 0:0:30 $i.mp3;done
+
+# for i in *mp3;do python cut_end.py ffmpeg -i $i.mp3 -ss 0:0:0 -t 0:0:30 $i.mp3;done
 # crear .txt con listado
 # borrar los archivos mp3 creados
 # llamar tambien al bulk processor de echo-fingerprint

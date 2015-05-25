@@ -3,7 +3,6 @@ import sys
 from django.http.response import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 
-sys.path.append('/home/vagrant/echoprint-server/API')
 import fp
 import re
 from utils import *
