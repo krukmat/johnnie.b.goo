@@ -4,6 +4,7 @@ import subprocess
 import fp
 import re
 import os
+from fastingest import parse_json_dump
 
 
 def generate_fingerprint(mp3_file):
@@ -17,8 +18,9 @@ def generate_fingerprint(mp3_file):
     return data[0]['code']
 
 
-def generate_fingerprint_from_list(file_list):
+def generate_fingerprint_from_list(results, file_list):
     # TODO: os.system is thread safe??
+    # TODO: allcode.json with random prefix
     command = '/home/vagrant/echoprint-codegen/echoprint-codegen -s 10 30 < %s > /tmp/allcodes.json' % (file_list,)
     #popen_cmd = shlex.split(command)
     #process = subprocess.Popen(popen_cmd,
@@ -27,10 +29,21 @@ def generate_fingerprint_from_list(file_list):
     #outputstring= process.communicate('')[0]
     #print "out1 %s" % (outputstring,)
     os.system(command)
-    #data = json.loads(outputstring)
-    #if data[0].get('error'):
-    #    return data[0]['error']
-    #return data[0]['code']
+    with open('/tmp/allcodes.json', 'r') as data_file:
+        data = json.load(data_file)
+        for fingerprint in data:
+            label = [v for v in results if v[1] == fingerprint['metadata']['filename']][0][0]
+            artist = label.split('-')[0].strip()
+            title = label.split('-')[1].strip()
+            fingerprint['metadata']['artist'] = artist
+            fingerprint['metadata']['title'] = title
+    # Overwrite with artist and title
+    with open('/tmp/allcodes.json', 'w') as data_file:
+        data_file.write(json.dumps(data))
+    # Fastingest invoke => post all into echo-fingerprint
+    codes, _ = parse_json_dump('/tmp/allcodes.json')
+    # TODO: No esta importando
+    fp.ingest(codes)
     return True
 
 

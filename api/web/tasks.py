@@ -60,7 +60,7 @@ def generate_report(results):
         for name, _file in results:
             fd.write("%s\n" % (_file,))
     # After all files created => call echo-fingerprint bulk process
-    generate_fingerprint_from_list(report_filename)
+    generate_fingerprint_from_list(results, report_filename)
     # TODO: Import allcodes.json. Missing metadata (artist, track)
     # delete all files in folder
     for name, _file in results:

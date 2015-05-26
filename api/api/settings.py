@@ -15,6 +15,7 @@ import os
 import sys
 
 sys.path.append('/home/vagrant/echoprint-server/API')
+sys.path.append('/home/vagrant/echoprint-server/util')
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
