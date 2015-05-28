@@ -1,10 +1,9 @@
-import json
-import sys
+import StringIO
 from django.http.response import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 
 import fp
-import re
+from api.web.tasks import generate_tasks
 from utils import *
 
 # Create your views here.
@@ -14,7 +13,6 @@ from utils import *
 def ingest(request):
     params = request.POST
     mp3 = request.FILES['mp3']
-    # TODO: Convert music -> fingerprint code
     fp_code = generate_fingerprint(mp3)
     if fp_code is dict:
         return HttpResponse(fp_code['error'], status=400)
@@ -77,3 +75,14 @@ def query(request):
                        "total_time": response.total_time,
                        "metadata": metadata})
     return HttpResponse(data, status=200)
+
+
+@csrf_exempt
+def bulk_process(request):
+    file_list = request.FILES['list_file']
+    string = []
+    for line in file_list:
+        string.append(line)
+    if string:
+        generate_tasks.delay(string)
+    return HttpResponse('OK', status=200)

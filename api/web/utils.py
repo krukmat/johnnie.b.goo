@@ -1,3 +1,5 @@
+import random
+
 __author__ = 'matiasleandrokruk'
 import json
 import subprocess
@@ -20,30 +22,36 @@ def generate_fingerprint(mp3_file):
 
 def generate_fingerprint_from_list(results, file_list):
     # TODO: os.system is thread safe??
-    # TODO: allcode.json with random prefix
-    command = '/home/vagrant/echoprint-codegen/echoprint-codegen -s 10 30 < %s > /tmp/allcodes.json' % (file_list,)
-    #popen_cmd = shlex.split(command)
-    #process = subprocess.Popen(popen_cmd,
-    #                           stderr=subprocess.STDOUT,
-    #                           stdout=subprocess.PIPE, shell=True)
-    #outputstring= process.communicate('')[0]
-    #print "out1 %s" % (outputstring,)
+    codes_file = '/tmp/allcodes_%s.json' % (random.randint(1, 10000))
+    command = '/home/vagrant/echoprint-codegen/echoprint-codegen -s 10 30 < %s > %s' % (file_list, codes_file)
     os.system(command)
-    with open('/tmp/allcodes.json', 'r') as data_file:
+
+    with open(codes_file, 'r') as data_file:
         data = json.load(data_file)
         for fingerprint in data:
-            label = [v for v in results if v[1] == fingerprint['metadata']['filename']][0][0]
-            artist = label.split('-')[0].strip()
-            title = label.split('-')[1].strip()
-            fingerprint['metadata']['artist'] = artist
-            fingerprint['metadata']['title'] = title
+            # check fp doesn't exist in database
+            code_string = fingerprint['code']
+            response = fp.best_match_for_query(code_string)
+            if not response.match():
+                label = [v for v in results if v[1] == fingerprint['metadata']['filename']][0][0]
+                artist = label.split('-')[0].strip()
+                title = label.split('-')[1].strip()
+                fingerprint['metadata']['artist'] = artist
+                fingerprint['metadata']['title'] = title
+            else:
+                # remove duplicate element
+                data.pop(fingerprint)
+
     # Overwrite with artist and title
-    with open('/tmp/allcodes.json', 'w') as data_file:
+    with open(codes_file, 'w') as data_file:
         data_file.write(json.dumps(data))
+
     # Fastingest invoke => post all into echo-fingerprint
-    codes, _ = parse_json_dump('/tmp/allcodes.json')
-    # TODO: No esta importando
+    codes, _ = parse_json_dump(codes_file)
     fp.ingest(codes)
+
+    delete_file(codes_file)
+
     return True
 
 

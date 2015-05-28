@@ -4,6 +4,7 @@
 
 var QUERY_URL = 'http://jbg.dev:8088/query/';
 var INGEST_URL = 'http://jbg.dev:8088/ingest/';
+var BULK_UPLOAD_URL = 'http://jbg.dev:8088/bulk_process/';
 var APIs = [];
 chrome.storage.sync.get({
     Api: 'http://www.songsterr.com/a/wa/search?pattern='
@@ -12,8 +13,6 @@ chrome.storage.sync.get({
         APIs.push(items.Api[item]);
     }
   });
-
-//TODO: Query: More metadata. Popup always visible??
 
 function query() {
 	// Retrieve the FileList object from the referenced element ID
@@ -43,6 +42,36 @@ function query() {
           $('#response').text('Track_id:'+object.metadata.track_id);
           for (var api in APIs)
               chrome.tabs.create({url:APIs[api]+object.metadata.artist+'+'+object.metadata.track});
+      }
+    });
+}
+
+function bulk_upload() {
+	// Retrieve the FileList object from the referenced element ID
+	var myFileList = document.getElementById('mp3').files;
+
+	// Grab the first File Object from the FileList
+	var myFile = myFileList[0];
+
+	// Set some variables containing the three attributes of the file
+	var myFileName = myFile.name;
+	var myFileSize = myFile.size;
+	var myFileType = myFile.type;
+
+	// Alert the information we just gathered
+	console.log("FileName: " + myFileName + "- FileSize: " + myFileSize + " - FileType: " + myFileType);
+
+    var formData = new FormData();
+    formData.append('list_file', myFile);
+
+	// Let's upload the complete file object
+	makeRequest(BULK_UPLOAD_URL, formData, function(data) {
+      // Render the results.
+      object = JSON.parse(data)
+      if (object.error !== undefined)
+          $('#response').text(object.error);
+      else{
+          $('#response').text('OK');
       }
     });
 }
@@ -126,6 +155,10 @@ function makeRequest(URL, formData, callback) {
 
 document.getElementById('check').addEventListener("click",function(iVal){
       query();
+});
+
+document.getElementById('bulk_upload').addEventListener("click",function(iVal){
+      bulk_upload();
 });
 
 document.getElementById('ingest').addEventListener("click",function(iVal){

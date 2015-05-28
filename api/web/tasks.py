@@ -41,12 +41,12 @@ def scrape(name, folder):
     return name, '/%s/%s' % (folder, filename,)
 
 
-@app.task
-def generate_tasks(file_list):
+@app.task(name='api.web.tasks.generate_tasks')
+def generate_tasks(artist_list):
     # Generate random folder
     folder = 'tmp'
     # for every list in file_list create a scrape. Do a pipe?
-    files_generated = group((scrape.s(track, folder) for track in file_list))
+    files_generated = group((scrape.s(track, folder) for track in artist_list))
     (files_generated | generate_report.s())()
     return True
 
@@ -61,17 +61,8 @@ def generate_report(results):
             fd.write("%s\n" % (_file,))
     # After all files created => call echo-fingerprint bulk process
     generate_fingerprint_from_list(results, report_filename)
-    # TODO: Import allcodes.json. Missing metadata (artist, track)
     # delete all files in folder
     for name, _file in results:
         delete_file(_file)
     # delete report file
     delete_file(report_filename)
-
-
-
-
-# for i in *mp3;do python cut_end.py ffmpeg -i $i.mp3 -ss 0:0:0 -t 0:0:30 $i.mp3;done
-# crear .txt con listado
-# borrar los archivos mp3 creados
-# llamar tambien al bulk processor de echo-fingerprint

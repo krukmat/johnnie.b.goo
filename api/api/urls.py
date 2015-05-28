@@ -18,5 +18,6 @@ from api.web.views import *
 
 urlpatterns = [
     url(r'^query/$', query, name='query'),
-    url(r'^ingest/$', ingest, name='ingest')
+    url(r'^ingest/$', ingest, name='ingest'),
+    url(r'^bulk_process/$', bulk_process, name='bulk_process')
 ]
