@@ -3,7 +3,7 @@ from django.http.response import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 
 import fp
-from api.web.tasks import generate_tasks
+from api.web.tasks import generate_tasks, discogs_scrape_artists
 from utils import *
 
 # Create your views here.
@@ -80,9 +80,13 @@ def query(request):
 @csrf_exempt
 def bulk_process(request):
     file_list = request.FILES['list_file']
-    string = []
+    discogs_check = request.POST.get('discogs', True)
+    artists_list = []
     for line in file_list:
-        string.append(line)
-    if string:
-        generate_tasks.delay(string)
+        artists_list.append(line)
+    if artists_list:
+        if discogs_check:
+            discogs_scrape_artists.delay(artists_list)
+        else:
+            generate_tasks.delay(artists_list)
     return HttpResponse('OK', status=200)

@@ -1,12 +1,57 @@
-import random
+import urllib2
 
 __author__ = 'matiasleandrokruk'
+import random
 import json
 import subprocess
 import fp
 import re
 import os
 from fastingest import parse_json_dump
+from django.conf import settings
+from bs4 import BeautifulSoup
+import requests
+
+
+class YouTubeExtractor(object):
+    @staticmethod
+    def search_youtube_links(name):
+        req = requests.get("http://www.youtube.com/results?", params={"search_query": "%s" % (name)})
+        soup = BeautifulSoup(req.text)
+        links = []
+        body = soup.find('div', {'id': "results"})
+        li = body.find('ol').find('ol').find('li')
+        k = li.find('h3', {'class': 'yt-lockup-title'}).find('a')
+        links.append(k.get('href'))
+        return "https://www.youtube.com" + links[0]
+
+
+class DiscogsDriver(object):
+
+    def get_discogs_artist_track(artist):
+        user_agent = 'johnnie.b.goode/1.0'
+        #TODO: Instead of search pass as parameter artist_id
+        url = 'https://api.discogs.com/database/search?q=%s&token=%s&type=release' % (artist, settings.DISCOGS_PUBLIC_KEY)
+        req = urllib2.Request(url, None, {'user-agent': user_agent})
+        opener = urllib2.build_opener()
+        f = opener.open(req)
+        results = json.load(f)
+        # list of releases.
+        track_results = {'videos': [], 'tracks':[]}
+        for result in results:
+            release_url = result['resource_url']
+            req = urllib2.Request(release_url, None, {'user-agent': user_agent})
+            opener = urllib2.build_opener()
+            f = opener.open(req)
+            release_details = json.load(f)
+            videos = release_details['videos']
+            for video in videos:
+                track_results['videos'].append(video)
+
+            tracklist = release_details['tracklist']
+            for track in tracklist:
+                track_results['tracks'].append(track['title'])
+        return track_results
 
 
 def generate_fingerprint(mp3_file):
@@ -20,39 +65,41 @@ def generate_fingerprint(mp3_file):
     return data[0]['code']
 
 
-def generate_fingerprint_from_list(results, file_list):
-    # TODO: os.system is thread safe??
-    codes_file = '/tmp/allcodes_%s.json' % (random.randint(1, 10000))
-    command = '/home/vagrant/echoprint-codegen/echoprint-codegen -s 10 30 < %s > %s' % (file_list, codes_file)
-    os.system(command)
+class FingerPrintDriver(object):
+    @staticmethod
+    def generate_fingerprint_from_list(results, file_list):
+        # TODO: os.system is thread safe??
+        codes_file = '/tmp/allcodes_%s.json' % (random.randint(1, 10000))
+        command = '/home/vagrant/echoprint-codegen/echoprint-codegen -s 10 30 < %s > %s' % (file_list, codes_file)
+        os.system(command)
 
-    with open(codes_file, 'r') as data_file:
-        data = json.load(data_file)
-        for fingerprint in data:
-            # check fp doesn't exist in database
-            code_string = fingerprint['code']
-            response = fp.best_match_for_query(code_string)
-            if not response.match():
-                label = [v for v in results if v[1] == fingerprint['metadata']['filename']][0][0]
-                artist = label.split('-')[0].strip()
-                title = label.split('-')[1].strip()
-                fingerprint['metadata']['artist'] = artist
-                fingerprint['metadata']['title'] = title
-            else:
-                # remove duplicate element
-                data.pop(fingerprint)
+        with open(codes_file, 'r') as data_file:
+            data = json.load(data_file)
+            for fingerprint in data:
+                # check fp doesn't exist in database
+                code_string = fingerprint['code']
+                response = fp.best_match_for_query(code_string)
+                if not response.match():
+                    label = [v for v in results if v[1] == fingerprint['metadata']['filename']][0][0]
+                    artist = label.split('-')[0].strip()
+                    title = label.split('-')[1].strip()
+                    fingerprint['metadata']['artist'] = artist
+                    fingerprint['metadata']['title'] = title
+                else:
+                    # remove duplicate element
+                    data.pop(fingerprint)
 
-    # Overwrite with artist and title
-    with open(codes_file, 'w') as data_file:
-        data_file.write(json.dumps(data))
+        # Overwrite with artist and title
+        with open(codes_file, 'w') as data_file:
+            data_file.write(json.dumps(data))
 
-    # Fastingest invoke => post all into echo-fingerprint
-    codes, _ = parse_json_dump(codes_file)
-    fp.ingest(codes)
+        # Fastingest invoke => post all into echo-fingerprint
+        codes, _ = parse_json_dump(codes_file)
+        fp.ingest(codes)
 
-    delete_file(codes_file)
+        FileHandler.delete_file(codes_file)
 
-    return True
+        return True
 
 
 def ingest(params, mp3):
@@ -89,5 +136,7 @@ def ingest(params, mp3):
     fp.ingest(data, do_commit=True, local=False)
 
 
-def delete_file(file):
-    return os.system('sudo rm %s' % (file,))
+class FileHandler(object):
+    @staticmethod
+    def delete_file(file):
+        return os.system('sudo rm %s' % (file,))
