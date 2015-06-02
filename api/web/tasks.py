@@ -88,11 +88,10 @@ def generate_report(results):
 @app.task
 def discogs_scrape_artist(artist):
     track_list = DiscogsDriver.get_discogs_artist_track(artist)
-    generate_tasks.delay(track_list)
+    generate_tasks.delay(track_list['tracks'])
     return True
 
 @app.task
 def discogs_scrape_artists(artists):
     artists_ok = DiscogsDriver.get_valid_artists(artists)
-    # checkeo que el artista exists. TODO: Optional
     group(discogs_scrape_artist.s(artist) for artist in artists_ok)()

@@ -45,7 +45,6 @@ class DiscogsDriver(object):
     @staticmethod
     def get_release_details(release):
         release_url = release.get('resource_url')
-        print release
         if release_url:
             release_details = json_discogs(release_url)
             return release_details
@@ -73,10 +72,9 @@ class DiscogsDriver(object):
         # list of releases.
         track_results = {'videos': [], 'tracks':[]}
         releases = results.get('releases', [])
-        if len(releases)> 10:
-            releases = releases[:10]
+        if settings.TESTING:
+            releases = releases[:5]
         for result in releases:
-            print result
             release_details = DiscogsDriver.get_release_details(result)
             if release_details:
                 videos = release_details.get('videos', [])
@@ -84,7 +82,7 @@ class DiscogsDriver(object):
                     track_results['videos'].append(video)
                 tracklist = release_details.get('tracklist', [])
                 for track in tracklist:
-                    track_results['tracks'].append(track['title'])
+                    track_results['tracks'].append('%s - %s' %(result['artist'], track['title']))
         return track_results
 
 
