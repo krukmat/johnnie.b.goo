@@ -22,34 +22,6 @@ class StorageException(Exception):
     pass
 
 @app.task
-def discogs_scrape_artist(artist):
-    track_list = DiscogsDriver.get_discogs_artist_track(artist)
-    folder = 'tmp'
-    # TODO: Videos as well
-    files_generated = group((scrape_track.s('%s - %s' % (artist, track), folder) for track in track_list['tracklist']))
-    (files_generated | generate_report.s())()
-    return True
-
-@app.task
-def discogs_scrape_artists(artists):
-    user_agent = 'johnnie.b.goode/1.0'
-    artists_ok = []
-    # TODO: Refactor into driver
-    for artist in artists:
-        # for every artist check if artists exists
-        url = 'https://api.discogs.com/database/search?q=%s&token=%s&type=release' % (
-            artist, settings.DISCOGS_PUBLIC_KEY)
-        req = urllib2.Request(url, None, {'user-agent': user_agent})
-        opener = urllib2.build_opener()
-        f = opener.open(req)
-        results = json.load(f)
-        if results:
-            artists_ok.append(artist)
-    # checkeo que el artista exists. TODO: Optional
-    group(discogs_scrape_artist.s(artist) for artist in artists)()
-
-
-@app.task
 def scrape_track(name, folder):
     try:
         link = YouTubeExtractor.search_youtube_links(name)
@@ -111,3 +83,16 @@ def generate_report(results):
             FileHandler.delete_file(_file)
     # delete report file
     FileHandler.delete_file(report_filename)
+
+
+@app.task
+def discogs_scrape_artist(artist):
+    track_list = DiscogsDriver.get_discogs_artist_track(artist)
+    generate_tasks.delay(track_list)
+    return True
+
+@app.task
+def discogs_scrape_artists(artists):
+    artists_ok = DiscogsDriver.get_valid_artists(artists)
+    # checkeo que el artista exists. TODO: Optional
+    group(discogs_scrape_artist.s(artist) for artist in artists_ok)()

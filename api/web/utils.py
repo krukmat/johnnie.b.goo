@@ -26,31 +26,65 @@ class YouTubeExtractor(object):
         return "https://www.youtube.com" + links[0]
 
 
+def json_discogs(url):
+    user_agent = 'johnnie.b.goode/1.0'
+    req = urllib2.Request(url, None, {'user-agent': user_agent})
+    opener = urllib2.build_opener()
+    f = opener.open(req)
+    results = json.load(f)
+    return results
+
+
 class DiscogsDriver(object):
 
+    @staticmethod
+    def get_releases(artist):
+        return json_discogs(
+            'https://api.discogs.com/artists/%s/releases?token=%s' % (artist, settings.DISCOGS_PUBLIC_KEY))
+
+    @staticmethod
+    def get_release_details(release):
+        release_url = release.get('resource_url')
+        print release
+        if release_url:
+            release_details = json_discogs(release_url)
+            return release_details
+        return None
+
+
+    @staticmethod
+    def get_valid_artists(artists):
+        artists_ok = []
+        for artist in artists:
+            try:
+                # for every artist check if artists exists
+                url = 'https://api.discogs.com/database/search?q=%s&token=%s&type=release' % (
+                    artist, settings.DISCOGS_PUBLIC_KEY)
+                results = json_discogs(url)
+                if results and results['results'] and len(results['results'])>0:
+                    artists_ok.append(results['results'][0]['resource_url'])
+            except Exception:
+                pass
+        return artists_ok
+
+    @staticmethod
     def get_discogs_artist_track(artist):
-        user_agent = 'johnnie.b.goode/1.0'
-        #TODO: Instead of search pass as parameter artist_id
-        url = 'https://api.discogs.com/database/search?q=%s&token=%s&type=release' % (artist, settings.DISCOGS_PUBLIC_KEY)
-        req = urllib2.Request(url, None, {'user-agent': user_agent})
-        opener = urllib2.build_opener()
-        f = opener.open(req)
-        results = json.load(f)
+        results = DiscogsDriver.get_releases(artist)
         # list of releases.
         track_results = {'videos': [], 'tracks':[]}
-        for result in results:
-            release_url = result['resource_url']
-            req = urllib2.Request(release_url, None, {'user-agent': user_agent})
-            opener = urllib2.build_opener()
-            f = opener.open(req)
-            release_details = json.load(f)
-            videos = release_details['videos']
-            for video in videos:
-                track_results['videos'].append(video)
-
-            tracklist = release_details['tracklist']
-            for track in tracklist:
-                track_results['tracks'].append(track['title'])
+        releases = results.get('releases', [])
+        if len(releases)> 10:
+            releases = releases[:10]
+        for result in releases:
+            print result
+            release_details = DiscogsDriver.get_release_details(result)
+            if release_details:
+                videos = release_details.get('videos', [])
+                for video in videos:
+                    track_results['videos'].append(video)
+                tracklist = release_details.get('tracklist', [])
+                for track in tracklist:
+                    track_results['tracks'].append(track['title'])
         return track_results
 
 
