@@ -160,7 +160,7 @@ class TestTasks(SimpleTestCase):
         self.skipTest("Check PATH Issue")
 
 class TestDiscogsDriver(SimpleTestCase):
-    def test_get_discogs_artist_track(self):
+    def test_get_valid_artists(self):
         artists = ['lalalalalsdsdsddsa', 'Nirvana']
         valid_artists = DiscogsDriver.get_valid_artists(artists)
         self.assertEqual(len(valid_artists), 1)

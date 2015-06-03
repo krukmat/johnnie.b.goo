@@ -132,8 +132,11 @@ def configure_supervisor():
             stdout_logfile=LOG_PATH % process_name,
             **options
         )
-
+        sudo('touch /var/log/%s.log' % (process_name))
         fabtools.require.file('/var/log/%s.log' % (process_name))
+        sudo('chown %s:%s /var/log/%s.log' % (env.supervisor_user,
+                                              env.supervisor_user,
+                                              process_name))
 
         for key in process_kwargs:
             if callable(process_kwargs[key]):

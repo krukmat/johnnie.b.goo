@@ -91,7 +91,7 @@ def discogs_scrape_artist(artist):
     generate_tasks.delay(track_list['tracks'])
     return True
 
-@app.task
+@app.task(name='api.web.tasks.discogs_scrape_artists')
 def discogs_scrape_artists(artists):
     artists_ok = DiscogsDriver.get_valid_artists(artists)
     group(discogs_scrape_artist.s(artist) for artist in artists_ok)()

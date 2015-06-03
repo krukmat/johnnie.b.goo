@@ -57,11 +57,11 @@ class DiscogsDriver(object):
         for artist in artists:
             try:
                 # for every artist check if artists exists
-                url = 'https://api.discogs.com/database/search?q=%s&token=%s&type=release' % (
+                url = 'https://api.discogs.com/database/search?q=%s&token=%s&type=artist' % (
                     artist, settings.DISCOGS_PUBLIC_KEY)
                 results = json_discogs(url)
                 if results and results['results'] and len(results['results'])>0:
-                    artists_ok.append(results['results'][0]['resource_url'])
+                    artists_ok.append(results['results'][0]['id'])
             except Exception:
                 pass
         return artists_ok
