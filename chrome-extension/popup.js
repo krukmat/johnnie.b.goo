@@ -2,9 +2,9 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-var QUERY_URL = 'http://jbg.dev:8088/query/';
-var INGEST_URL = 'http://jbg.dev:8088/ingest/';
-var BULK_UPLOAD_URL = 'http://jbg.dev:8088/bulk_process/';
+var QUERY_URL = 'http://jbg.dev:8008/query/';
+var INGEST_URL = 'http://jbg.dev:8008/ingest/';
+var BULK_UPLOAD_URL = 'http://jbg.dev:8008/bulk_process/';
 var APIs = [];
 chrome.storage.sync.get({
     Api: 'http://www.songsterr.com/a/wa/search?pattern='

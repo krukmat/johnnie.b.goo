@@ -23,37 +23,41 @@ class StorageException(Exception):
 
 @app.task
 def scrape_track(name, folder):
+    # TODO DETAIL in log
     try:
         link = YouTubeExtractor.search_youtube_links(name)
     except Exception:
         return False, False
-    # search in youtube based on en artist - track
-    ydl = youtube_dl.YoutubeDL({'outtmpl': '%(id)s%(ext)s'})
-    # Add all the available extractors
-    ydl.add_default_info_extractors()
-    result = ydl.extract_info(link, download=False)
-    found = False
-    for format in result['formats']:
-        if format['ext'] == 'm4a':
-            url = format['url']
-            try:
-                r = requests.get(url, stream=True)
-                chunk_size = 1000
-                filename = result['display_id']+'.mp3'
+    try:
+        # search in youtube based on en artist - track
+        ydl = youtube_dl.YoutubeDL({'outtmpl': '%(id)s%(ext)s'})
+        # Add all the available extractors
+        ydl.add_default_info_extractors()
+        result = ydl.extract_info(link, download=False)
+        found = False
+        for format in result['formats']:
+            if format['ext'] == 'm4a':
+                url = format['url']
                 try:
-                    with open('/%s/%s' % (folder, filename,), 'wb') as fd:
-                        for chunk in r.iter_content(chunk_size):
-                            fd.write(chunk)
+                    r = requests.get(url, stream=True)
+                    chunk_size = 1000
+                    filename = result['display_id']+'.mp3'
+                    try:
+                        with open('/%s/%s' % (folder, filename,), 'wb') as fd:
+                            for chunk in r.iter_content(chunk_size):
+                                fd.write(chunk)
+                    except Exception:
+                        raise StorageException('Some problem writing file /%s/%s' % (folder, filename))
+                    found = True
+                    break
                 except Exception:
-                    raise StorageException('Some problem writing file /%s/%s' % (folder, filename))
-                found = True
-                break
-            except Exception:
-                pass
-    if found:
-        return name, '/%s/%s' % (folder, filename,)
-    else:
-        return False, False
+                    pass
+        if found:
+            return name, '/%s/%s' % (folder, filename,)
+        else:
+            return False, False
+    except:
+        False, False
 
 
 @app.task(name='api.web.tasks.generate_tasks')
@@ -68,6 +72,7 @@ def generate_tasks(artist_list):
 
 @app.task
 def generate_report(results):
+    # TODO DETAIL in log
     random_sufix = random.randint(1, 10000)
     report_filename = '/tmp/report_%s' % (random_sufix,)
     # create summary files list
@@ -86,12 +91,18 @@ def generate_report(results):
 
 
 @app.task
-def discogs_scrape_artist(artist):
+def discogs_scrape_artist(artist, limit=10):
+    # TODO DETAIL in log
+    # TODO: Filter better. Check discogs attributes to refining track's list.
     track_list = DiscogsDriver.get_discogs_artist_track(artist)
-    generate_tasks.delay(track_list['tracks'])
+    if limit:
+        generate_tasks.delay(track_list['tracks'][:limit])
+    else:
+        generate_tasks.delay(track_list['tracks'])
     return True
 
 @app.task(name='api.web.tasks.discogs_scrape_artists')
 def discogs_scrape_artists(artists):
+    # TODO DETAIL in log
     artists_ok = DiscogsDriver.get_valid_artists(artists)
     group(discogs_scrape_artist.s(artist) for artist in artists_ok)()

@@ -82,7 +82,9 @@ class DiscogsDriver(object):
                     track_results['videos'].append(video)
                 tracklist = release_details.get('tracklist', [])
                 for track in tracklist:
-                    track_results['tracks'].append('%s - %s' %(result['artist'], track['title']))
+                    track_item = '%s - %s' % (result['artist'], track['title'])
+                    if track_item not in track_results['tracks']:
+                        track_results['tracks'].append(track_item)
         return track_results
 
 
