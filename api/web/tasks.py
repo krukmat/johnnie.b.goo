@@ -91,7 +91,7 @@ def generate_report(results):
 
 
 @app.task
-def discogs_scrape_artist(artist, limit=10):
+def discogs_scrape_artist(artist, limit=None):
     # TODO DETAIL in log
     # TODO: Filter better. Check discogs attributes to refining track's list.
     track_list = DiscogsDriver.get_discogs_artist_track(artist)
@@ -104,5 +104,7 @@ def discogs_scrape_artist(artist, limit=10):
 @app.task(name='api.web.tasks.discogs_scrape_artists')
 def discogs_scrape_artists(artists):
     # TODO DETAIL in log
+    # TODO Problem with compound names
     artists_ok = DiscogsDriver.get_valid_artists(artists)
+    print artists_ok
     group(discogs_scrape_artist.s(artist) for artist in artists_ok)()

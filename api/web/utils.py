@@ -11,6 +11,7 @@ from fastingest import parse_json_dump
 from django.conf import settings
 from bs4 import BeautifulSoup
 import requests
+import urllib
 
 
 class YouTubeExtractor(object):
@@ -46,8 +47,11 @@ class DiscogsDriver(object):
     def get_release_details(release):
         release_url = release.get('resource_url')
         if release_url:
-            release_details = json_discogs(release_url)
-            return release_details
+            try:
+                release_details = json_discogs(release_url)
+                return release_details
+            except:
+                return None
         return None
 
 
@@ -58,11 +62,13 @@ class DiscogsDriver(object):
             try:
                 # for every artist check if artists exists
                 url = 'https://api.discogs.com/database/search?q=%s&token=%s&type=artist' % (
-                    artist, settings.DISCOGS_PUBLIC_KEY)
+                    urllib.quote(artist), settings.DISCOGS_PUBLIC_KEY)
+                print url
                 results = json_discogs(url)
                 if results and results['results'] and len(results['results'])>0:
                     artists_ok.append(results['results'][0]['id'])
-            except Exception:
+            except Exception, exc:
+                print exc
                 pass
         return artists_ok
 
