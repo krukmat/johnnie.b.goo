@@ -9,10 +9,9 @@ import random
 
 #TODO: Fix this!!! Some issue with PATH
 if settings.TESTING:
-    from web.utils import FingerPrintDriver, FileHandler, DiscogsDriver, YouTubeExtractor
+    from web.utils import FingerPrintDriver, FileHandler, DiscogsDriver, YouTubeExtractor, chunks
 else:
-    from utils import FingerPrintDriver, FileHandler, DiscogsDriver, YouTubeExtractor
-
+    from utils import FingerPrintDriver, FileHandler, DiscogsDriver, YouTubeExtractor, chunks
 import requests
 import youtube_dl
 from djcelery.app import app
@@ -60,12 +59,12 @@ def scrape_track(name, folder):
         False, False
 
 
-@app.task(name='api.web.tasks.generate_tasks')
-def generate_tasks(artist_list):
+@app.task(name='api.web.tasks.generate_tracks_import')
+def generate_tracks_import(tracks_list):
     # TODO Generate random folder
     folder = 'tmp'
     # for every list in file_list create a scrape. Do a pipe?
-    files_generated = group((scrape_track.s(track, folder) for track in artist_list))
+    files_generated = group((scrape_track.s(track, folder) for track in tracks_list))
     (files_generated | generate_report.s())()
     return True
 
@@ -73,32 +72,36 @@ def generate_tasks(artist_list):
 @app.task
 def generate_report(results):
     # TODO DETAIL in log
-    random_sufix = random.randint(1, 10000)
-    report_filename = '/tmp/report_%s' % (random_sufix,)
-    # create summary files list
-    with open(report_filename, 'wb') as fd:
+    if results:
+        random_sufix = random.randint(1, 10000)
+        report_filename = '/tmp/report_%s' % (random_sufix,)
+        # create summary files list
+        with open(report_filename, 'wb') as fd:
+            for name, _file in results:
+                if name:
+                    fd.write("%s\n" % (_file,))
+        # After all files created => call echo-fingerprint bulk process
+        FingerPrintDriver.generate_fingerprint_from_list(results, report_filename)
+        # delete all files in folder
         for name, _file in results:
             if name:
-                fd.write("%s\n" % (_file,))
-    # After all files created => call echo-fingerprint bulk process
-    FingerPrintDriver.generate_fingerprint_from_list(results, report_filename)
-    # delete all files in folder
-    for name, _file in results:
-        if name:
-            FileHandler.delete_file(_file)
-    # delete report file
-    FileHandler.delete_file(report_filename)
+                print "%s:%s was added to the database" % (name, _file)
+                FileHandler.delete_file(_file)
+        # delete report file
+        FileHandler.delete_file(report_filename)
 
 
 @app.task
-def discogs_scrape_artist(artist, limit=None):
+def discogs_scrape_artist(artist, name, limit=None):
     # TODO DETAIL in log
     # TODO: Filter better. Check discogs attributes to refining track's list.
-    track_list = DiscogsDriver.get_discogs_artist_track(artist)
+    track_list = DiscogsDriver.get_discogs_artist_track(artist, name)
     if limit:
-        generate_tasks.delay(track_list['tracks'][:limit])
+        track_list_slice = track_list['tracks'][:limit]
     else:
-        generate_tasks.delay(track_list['tracks'])
+        track_list_slice = track_list['tracks']
+    for sub_list in list(chunks(track_list_slice, 10)):
+        generate_tracks_import.delay(sub_list)
     return True
 
 @app.task(name='api.web.tasks.discogs_scrape_artists')
@@ -106,5 +109,4 @@ def discogs_scrape_artists(artists):
     # TODO DETAIL in log
     # TODO Problem with compound names
     artists_ok = DiscogsDriver.get_valid_artists(artists)
-    print artists_ok
-    group(discogs_scrape_artist.s(artist) for artist in artists_ok)()
+    group(discogs_scrape_artist.s(artist,name) for artist, name in artists_ok)()

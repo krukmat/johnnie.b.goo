@@ -3,7 +3,7 @@ from django.http.response import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 
 import fp
-from api.web.tasks import generate_tasks, discogs_scrape_artists
+from api.web.tasks import generate_tracks_import, discogs_scrape_artists
 from utils import *
 
 # Create your views here.
@@ -88,5 +88,5 @@ def bulk_process(request):
         if discogs_check:
             discogs_scrape_artists.delay(artists_list)
         else:
-            generate_tasks.delay(artists_list)
+            generate_tracks_import.delay(artists_list)
     return HttpResponse('OK', status=200)

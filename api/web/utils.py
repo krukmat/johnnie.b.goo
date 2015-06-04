@@ -14,6 +14,12 @@ import requests
 import urllib
 
 
+def chunks(l, n=10):
+    """ Yield successive n-sized chunks from l.
+    """
+    for i in xrange(0, len(l), n):
+        yield l[i:i+n]
+
 class YouTubeExtractor(object):
     @staticmethod
     def search_youtube_links(name):
@@ -63,17 +69,16 @@ class DiscogsDriver(object):
                 # for every artist check if artists exists
                 url = 'https://api.discogs.com/database/search?q=%s&token=%s&type=artist' % (
                     urllib.quote(artist), settings.DISCOGS_PUBLIC_KEY)
-                print url
                 results = json_discogs(url)
                 if results and results['results'] and len(results['results'])>0:
-                    artists_ok.append(results['results'][0]['id'])
+                    artists_ok.append((results['results'][0]['id'], artist))
             except Exception, exc:
                 print exc
                 pass
         return artists_ok
 
     @staticmethod
-    def get_discogs_artist_track(artist):
+    def get_discogs_artist_track(artist, name):
         results = DiscogsDriver.get_releases(artist)
         # list of releases.
         track_results = {'videos': [], 'tracks':[]}
@@ -81,16 +86,17 @@ class DiscogsDriver(object):
         if settings.TESTING:
             releases = releases[:5]
         for result in releases:
-            release_details = DiscogsDriver.get_release_details(result)
-            if release_details:
-                videos = release_details.get('videos', [])
-                for video in videos:
-                    track_results['videos'].append(video)
-                tracklist = release_details.get('tracklist', [])
-                for track in tracklist:
-                    track_item = '%s - %s' % (result['artist'], track['title'])
-                    if track_item not in track_results['tracks']:
-                        track_results['tracks'].append(track_item)
+            #if name in result['artist']:
+                release_details = DiscogsDriver.get_release_details(result)
+                if release_details:
+                    videos = release_details.get('videos', [])
+                    for video in videos:
+                        track_results['videos'].append(video)
+                    tracklist = release_details.get('tracklist', [])
+                    for track in tracklist:
+                        track_item = '%s - %s' % (result['artist'], track['title'])
+                        if track_item not in track_results['tracks']:
+                            track_results['tracks'].append(track_item)
         return track_results
 
 
@@ -117,17 +123,18 @@ class FingerPrintDriver(object):
             data = json.load(data_file)
             for fingerprint in data:
                 # check fp doesn't exist in database
-                code_string = fingerprint['code']
-                response = fp.best_match_for_query(code_string)
-                if not response.match():
-                    label = [v for v in results if v[1] == fingerprint['metadata']['filename']][0][0]
-                    artist = label.split('-')[0].strip()
-                    title = label.split('-')[1].strip()
-                    fingerprint['metadata']['artist'] = artist
-                    fingerprint['metadata']['title'] = title
-                else:
-                    # remove duplicate element
-                    data.pop(fingerprint)
+                code_string = fingerprint.get('code')
+                if code_string:
+                    response = fp.best_match_for_query(code_string)
+                    if not response.match():
+                        label = [v for v in results if v[1] == fingerprint['metadata']['filename']][0][0]
+                        artist = label.split('-')[0].strip()
+                        title = label.split('-')[1].strip()
+                        fingerprint['metadata']['artist'] = artist
+                        fingerprint['metadata']['title'] = title
+                    else:
+                        # remove duplicate element
+                        data.remove(fingerprint)
 
         # Overwrite with artist and title
         with open(codes_file, 'w') as data_file:
