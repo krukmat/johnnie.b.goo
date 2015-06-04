@@ -83,7 +83,7 @@ def bulk_process(request):
     discogs_check = request.POST.get('discogs', True)
     artists_list = []
     for line in file_list:
-        artists_list.append(line)
+        artists_list.append(line.replace('\n', ''))
     if artists_list:
         if discogs_check:
             discogs_scrape_artists.delay(artists_list)

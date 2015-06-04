@@ -107,6 +107,10 @@ def discogs_scrape_artist(artist, name, limit=None):
 @app.task(name='api.web.tasks.discogs_scrape_artists')
 def discogs_scrape_artists(artists):
     # TODO DETAIL in log
-    # TODO Problem with compound names
+    # TODO Problem with more than a single artist?
+    print artists
     artists_ok = DiscogsDriver.get_valid_artists(artists)
-    group(discogs_scrape_artist.s(artist,name) for artist, name in artists_ok)()
+    print artists_ok
+    for artist, name in artists_ok:
+        print "scrapping %s" % (name,)
+        discogs_scrape_artist.delay(artist, name)
