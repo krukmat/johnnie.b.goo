@@ -126,7 +126,7 @@ CELERY_STORE_ERRORS_EVEN_IF_IGNORED = False
 CELERYD_LOG_FILE = '/var/log/workers.log'
 
 # http://docs.celeryproject.org/en/master/configuration.html#celeryd-task-time-limit
-CELERYD_TASK_SOFT_TIME_LIMIT = 5 * 60  # 5 minutes
+CELERYD_TASK_SOFT_TIME_LIMIT = 60 * 60  # 5 minutes
 CELERYD_TASK_TIME_LIMIT = CELERYD_TASK_SOFT_TIME_LIMIT + 10
 CELERYD_HIJACK_ROOT_LOGGER = False
 
