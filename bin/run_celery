@@ -6,4 +6,4 @@ VENV_DIR="${DIR}/venv"
 
 cd $DIR
 
-exec "${VENV_DIR}/bin/python" "/home/vagrant/jbg/api/manage.py" celery worker -A api -l info --concurrency=20 -Q celery
+exec "${VENV_DIR}/bin/python" "/home/vagrant/jbg/api/manage.py" celery worker -A api -l info --concurrency=10 -Q celery

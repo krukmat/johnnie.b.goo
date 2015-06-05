@@ -63,6 +63,7 @@ def scrape_track(name, folder):
 def generate_tracks_import(tracks_list):
     # TODO Generate random folder
     folder = 'tmp'
+    print tracks_list
     # for every list in file_list create a scrape. Do a pipe?
     files_generated = group((scrape_track.s(track, folder) for track in tracks_list))
     (files_generated | generate_report.s())()
@@ -72,7 +73,8 @@ def generate_tracks_import(tracks_list):
 @app.task
 def generate_report(results):
     # TODO DETAIL in log
-    if results:
+    if results and len(results) > 0:
+        print results
         random_sufix = random.randint(1, 10000)
         report_filename = '/tmp/report_%s' % (random_sufix,)
         # create summary files list
@@ -107,7 +109,6 @@ def discogs_scrape_artist(artist, name, limit=None):
 @app.task(name='api.web.tasks.discogs_scrape_artists')
 def discogs_scrape_artists(artists):
     # TODO DETAIL in log
-    # TODO Problem with more than a single artist?
     print artists
     artists_ok = DiscogsDriver.get_valid_artists(artists)
     print artists_ok
