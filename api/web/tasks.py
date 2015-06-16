@@ -56,7 +56,7 @@ def scrape_track(name, folder):
         else:
             return False, False
     except:
-        False, False
+        return False, False
 
 
 @app.task(name='api.web.tasks.generate_tracks_import')
@@ -79,9 +79,13 @@ def generate_report(results):
         report_filename = '/tmp/report_%s' % (random_sufix,)
         # create summary files list
         with open(report_filename, 'wb') as fd:
-            for name, _file in results:
-                if name:
-                    fd.write("%s\n" % (_file,))
+            results_refined = [result for result in results if isinstance(result, (list, tuple))]
+            try:
+                for name, _file in results_refined:
+                    if name:
+                        fd.write("%s\n" % (_file,))
+            except TypeError:
+                pass
         # After all files created => call echo-fingerprint bulk process
         FingerPrintDriver.generate_fingerprint_from_list(results, report_filename)
         # delete all files in folder

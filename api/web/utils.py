@@ -47,7 +47,7 @@ class DiscogsDriver(object):
     @staticmethod
     def get_releases(artist):
         return json_discogs(
-            'https://api.discogs.com/artists/%s/releases?token=%s' % (artist, settings.DISCOGS_PUBLIC_KEY))
+            'https://api.discogs.com/artists/%s/releases?per_page=100&token=%s' % (artist, settings.DISCOGS_PUBLIC_KEY))
 
     @staticmethod
     def get_release_details(release):
@@ -135,6 +135,7 @@ class FingerPrintDriver(object):
                     else:
                         # remove duplicate element
                         data.remove(fingerprint)
+                        print "This file is duplicated"
 
         # Overwrite with artist and title
         with open(codes_file, 'w') as data_file:
