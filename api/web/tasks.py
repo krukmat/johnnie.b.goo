@@ -37,6 +37,7 @@ def scrape_track(name, folder):
         for format in result['formats']:
             if format['ext'] == 'm4a':
                 url = format['url']
+                #TODO: Check Tracker.youtube_code doesn't exist
                 try:
                     r = requests.get(url, stream=True)
                     chunk_size = 1000
@@ -98,10 +99,10 @@ def generate_report(results):
 
 
 @app.task
-def discogs_scrape_artist(artist, name, limit=None):
+def discogs_scrape_artist(artist, limit=None):
     # TODO DETAIL in log
     # TODO: Filter better. Check discogs attributes to refining track's list.
-    track_list = DiscogsDriver.get_discogs_artist_track(artist, name)
+    track_list = DiscogsDriver.get_discogs_artist_track(artist)
     if limit:
         track_list_slice = track_list['tracks'][:limit]
     else:
@@ -118,4 +119,4 @@ def discogs_scrape_artists(artists):
     print artists_ok
     for artist, name in artists_ok:
         print "scrapping %s" % (name,)
-        discogs_scrape_artist.delay(artist, name)
+        discogs_scrape_artist.delay(artist)

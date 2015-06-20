@@ -30,6 +30,7 @@ env.db_host = '127.0.0.1'
 env.db_test_name = env.db_name + '_test'
 
 env.debian_packages = "debian_packages.txt"
+env.cassandra_packages = "debian_cassandra.txt"
 
 env.git_url = 'ssh://krukmat@github.com/krukmat/johnnie.b.goo.git'
 
@@ -118,6 +119,7 @@ def configure_supervisor():
             environment='PYTHONPATH="%s"' % os.path.join(env.project_path, 'api'),
             autostart='true',
             autorestart='false',
+            master='true',
             startsecs=3,
             user=env.supervisor_user,
             loglevel='debug',
@@ -382,11 +384,30 @@ def api_path():
         with cd(env.django_path):
             yield
 
+@contextmanager
+def root_path():
+    with fabtools.python.virtualenv(env.virtualenv_path):
+        with cd('~'):
+            yield
+
 @task
 def install_python_modules():
     with project():
         fabtools.python.install_requirements('requirements.txt')
 
+
+def cassandra_sources():
+    run('curl -L http://debian.datastax.com/debian/repo_key | sudo apt-key add -')
+    # Cassandra and DevOp Center source
+    fabtools.require.deb.source('cassandra',
+                                'http://debian.datastax.com/community',
+                                '',
+                                'stable main')
+    # Oracle Java 7 install source. It's needed for Cassandra.
+    fabtools.require.deb.ppa('ppa:webupd8team/java')
+    run('apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys EEA14886')
+    run('echo oracle-java7-installer shared/accepted-oracle-license-v1-1 '
+        'select true | sudo /usr/bin/debconf-set-selections')  #
 
 @task
 def install_debian_packages():
@@ -400,6 +421,19 @@ def install_debian_packages():
     with open(filename, 'r') as file_:
         packages = [line.strip() for line in file_]
 
+    fabtools.deb.install(packages)
+    fabtools.deb.upgrade()
+
+
+@task
+def install_debian_cassandra():
+    # debian_cassandra has all the requirements to install cassandra
+    require_env('cassandra_packages')
+    cassandra_requirements = os.path.join(os.path.dirname(__file__),
+                                          env.cassandra_packages)
+    with open(cassandra_requirements, 'r') as file_:
+        packages = [line.strip() for line in file_]
+    cassandra_sources()
     fabtools.deb.install(packages)
     fabtools.deb.upgrade()
 
@@ -461,6 +495,7 @@ def install():
     install_git_repository()
     install_virtualenv()
     install_debian_packages()
+    install_debian_cassandra()
     install_tokyo_cabinet()
     install_tokyo_tyrant()
     install_server()
@@ -468,19 +503,50 @@ def install():
     install_python_modules()
     configure_nginx()
     configure_redis()
+    configure_cassandra()
     configure_supervisor()
 
 @task
 def django_manage(command, *args, **kwargs):
-    with api_path():
+    with root_path():
         str_args = ' '.join(args)
         str_kwargs = ' '.join(['%s=%s' % (k, v) for k, v in kwargs.items()])
-        run('DJANGO_SETTINGS_MODULE="%s" python manage.py %s %s %s' %
-                ("api.shell_settings", command, str_args, str_kwargs))
+        run('DJANGO_SETTINGS_MODULE="%s" python jbg/api/manage.py %s %s %s' %
+                ("api.settings", command, str_args, str_kwargs))
+
+@task
+def test(*args, **kwargs):
+    with root_path():
+        str_args = ' '.join(args)
+        str_kwargs = ' '.join(['%s=%s' % (k, v) for k, v in kwargs.items()])
+        run('DJANGO_SETTINGS_MODULE="%s" python jbg/api/manage.py test %s %s' %
+                ("api.test_settings", str_args, str_kwargs))
+
+@task
+def configure_cassandra():
+    """Configure cassandra: move to supervisor"""
+    run('sudo mkdir -p /var/lib/cassandra/data')  # It doesn't create it by default
+    run('sudo chown cassandra:cassandra /var/lib/cassandra/data')  # Change ownership to cassandra user
+    kwargs = dict(
+        command='service cassandra start',
+        stdout_logfile='/var/log/supervisor/cassandra.log',
+        user='root',
+        exitcodes='0',
+        startsecs=0,
+        autorestart='unexpected',
+        startretries=1,
+        priority=1
+    )
+    fabtools.require.supervisor.process('cassandra', **kwargs)
+
+@task
+def sync():
+    django_manage('sync_cassandra')
 
 @task
 def update():
     install_debian_packages()
+    install_debian_cassandra()
     install_virtualenv()
     install_python_modules()
     restart_supervisor()

@@ -3,6 +3,7 @@ from django.test.testcases import SimpleTestCase
 from mock import patch, MagicMock
 from tasks import scrape_track, generate_report
 from utils import DiscogsDriver, FileHandler
+from models import Track
 
 
 class TestTasks(SimpleTestCase):
@@ -159,6 +160,7 @@ class TestTasks(SimpleTestCase):
     def test_discogs_scrape_artist(self):
         self.skipTest("Check PATH Issue")
 
+
 class TestDiscogsDriver(SimpleTestCase):
     def test_get_valid_artists(self):
         artists = ['lalalalalsdsdsddsa', 'Nirvana']
@@ -174,3 +176,12 @@ class TestDiscogsDriver(SimpleTestCase):
         self.assertNotEqual(result['tracks'], [])
 
 
+class TestModels(SimpleTestCase):
+    def test_track(self):
+        for i in xrange(10):
+            track = Track(band='lalal', release='lolo',
+                          name='Track: %s' % (i,),
+                          fp_track_code='random: %s' % (i,),
+                          youtube_code='aakaka')
+            track.save()
+        self.assertEqual(Track.objects.count(), 10)

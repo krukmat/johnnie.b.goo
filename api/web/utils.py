@@ -78,7 +78,7 @@ class DiscogsDriver(object):
         return artists_ok
 
     @staticmethod
-    def get_discogs_artist_track(artist, name):
+    def get_discogs_artist_track(artist):
         results = DiscogsDriver.get_releases(artist)
         # list of releases.
         track_results = {'videos': [], 'tracks':[]}
@@ -118,7 +118,7 @@ class FingerPrintDriver(object):
         codes_file = '/tmp/allcodes_%s.json' % (random.randint(1, 10000))
         command = '/home/vagrant/echoprint-codegen/echoprint-codegen -s 10 30 < %s > %s' % (file_list, codes_file)
         os.system(command)
-
+        # TODO: Create the Track models
         with open(codes_file, 'r') as data_file:
             data = json.load(data_file)
             for fingerprint in data:

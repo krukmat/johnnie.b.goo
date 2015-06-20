@@ -1,6 +1,6 @@
 django==1.8.1
 ipdb==0.8
-uwsgi
+uwsgi==2.0.10
 web.py
 beautifulsoup4==4.3.2
 requests==2.7.0
@@ -10,3 +10,6 @@ django-celery==3.1.16
 subprocess32==3.2.6
 redis==2.10.3
 mock==1.0.1
+django-nose==1.4
+django-cassandra-engine==0.3.3
+coverage==4.0a5

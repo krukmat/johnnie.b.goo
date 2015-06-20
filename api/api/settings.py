@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/1.8/ref/settings/
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 import os
 import sys
+from cassandra import ConsistencyLevel
 
 sys.path.append('/home/vagrant/echoprint-server/API')
 sys.path.append('/home/vagrant/echoprint-server/util')
@@ -44,6 +45,8 @@ INSTALLED_APPS = (
     'djcelery',
     'web'
 )
+# TODO: Otra vez sopa.. Ver como evitar esto
+# INSTALLED_APPS = ('django_cassandra_engine',) + INSTALLED_APPS
 
 MIDDLEWARE_CLASSES = (
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -84,10 +87,32 @@ WSGI_APPLICATION = 'api.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/1.8/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+DATABASES={
+}
+
+DATABASES['default'] = {
+    'ENGINE': 'django_cassandra_engine',
+    'NAME': 'db_matias_2',
+    'USER': 'cassandra',
+    'PASSWORD': 'cassandra',
+    'TEST_NAME': 'db_jbg',
+    'HOST': '127.0.0.1',
+    'OPTIONS': {
+        'replication': {
+            'strategy_class': 'SimpleStrategy',
+            'replication_factor': 1
+        },
+        'connection': {
+            'consistency': ConsistencyLevel.ONE,
+            'lazy_connect': True,
+            'retry_connect': True
+            # + All connection options for cassandra.cluster.Cluster()
+        },
+        'session': {
+            'default_timeout': 10,
+            'default_fetch_size': 10000
+            # + All options for cassandra.cluster.Session()
+        }
     }
 }
 
@@ -134,3 +159,8 @@ CELERYD_HIJACK_ROOT_LOGGER = False
 DISCOGS_PUBLIC_KEY = 'qraKoVdMtegdzntquyXkBXqjjRKaZArEKfUcRHly'
 
 TESTING = sys.argv[1:2] == ['test']
+TEST_RUNNER = 'django_nose.NoseTestSuiteRunner'
+
+NOSE_ARGS = ['--verbosity=2', '--with-coverage', '--cover-erase',
+             '--cover-html', '--cover-html-dir=/vagrant/python-tests/',
+             '--cover-package=web']

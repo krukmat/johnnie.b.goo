@@ -19,3 +19,4 @@ addnow/settings/__init__.py
 data
 *.mp3
 api/db.sqlite3
+python-tests/*
