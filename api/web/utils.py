@@ -1,4 +1,5 @@
 import urllib2
+from models import Track
 
 __author__ = 'matiasleandrokruk'
 import random
@@ -90,11 +91,13 @@ class DiscogsDriver(object):
                 release_details = DiscogsDriver.get_release_details(result)
                 if release_details:
                     videos = release_details.get('videos', [])
+                    # Add title and year for every track
                     for video in videos:
                         track_results['videos'].append(video)
                     tracklist = release_details.get('tracklist', [])
                     for track in tracklist:
-                        track_item = '%s - %s' % (result['artist'], track['title'])
+                        track_item = '%s - %s - %s - %s' % (release_details['year'], release_details['title'].replace('-', ''),
+                                                            result['artist'].replace('-', ''), track['title'].replace('-', ''))
                         if track_item not in track_results['tracks']:
                             track_results['tracks'].append(track_item)
         return track_results
@@ -115,10 +118,12 @@ class FingerPrintDriver(object):
     @staticmethod
     def generate_fingerprint_from_list(results, file_list):
         # TODO: os.system is thread safe??
+        # TODO: How to test this?
         codes_file = '/tmp/allcodes_%s.json' % (random.randint(1, 10000))
         command = '/home/vagrant/echoprint-codegen/echoprint-codegen -s 10 30 < %s > %s' % (file_list, codes_file)
         os.system(command)
-        # TODO: Create the Track models
+        Track.sync()
+        # Create the Track models
         with open(codes_file, 'r') as data_file:
             data = json.load(data_file)
             for fingerprint in data:
@@ -128,10 +133,21 @@ class FingerPrintDriver(object):
                     response = fp.best_match_for_query(code_string)
                     if not response.match():
                         label = [v for v in results if v[1] == fingerprint['metadata']['filename']][0][0]
-                        artist = label.split('-')[0].strip()
-                        title = label.split('-')[1].strip()
+                        youtube_code = fingerprint['metadata']['filename'].replace('.mp3', '').replace('/tmp/', '')
+                        year = label.split('-')[0].strip()
+                        release = label.split('-')[1].strip()
+                        artist = label.split('-')[2].strip()
+                        title = label.split('-')[3].strip()
                         fingerprint['metadata']['artist'] = artist
                         fingerprint['metadata']['title'] = title
+                        # Track creation
+                        track = Track(band=artist, release=release,
+                                      name=title,
+                                      year=year,
+                                      youtube_code=youtube_code)
+                        track.save()
+                        # Remove all - (due to limitation in fingerprint-server track_id match)
+                        fingerprint['metadata']['track_id'] = str(track.track_id).replace('-', '_')
                     else:
                         # remove duplicate element
                         data.remove(fingerprint)

@@ -7,7 +7,7 @@ from celery.canvas import group
 from django.conf import settings
 import random
 
-#TODO: Fix this!!! Some issue with PATH
+# TODO: Fix this!!! Some issue with PATH
 if settings.TESTING:
     from web.utils import FingerPrintDriver, FileHandler, DiscogsDriver, YouTubeExtractor, chunks
 else:
@@ -15,7 +15,7 @@ else:
 import requests
 import youtube_dl
 from djcelery.app import app
-
+from models import Track
 
 class StorageException(Exception):
     pass
@@ -23,8 +23,19 @@ class StorageException(Exception):
 @app.task
 def scrape_track(name, folder):
     # TODO DETAIL in log
+    name_parts = name.split('-')
+    if len(name_parts) == 4:
+        year = name_parts[0]
+        title = name_parts[1]
+        artist = name_parts[2]
+        track = name_parts[3]
+    else:
+        print "Invalid name: %s" % (name,)
+        return False, False
+
+    track_name = '%s - %s' % (artist, track)
     try:
-        link = YouTubeExtractor.search_youtube_links(name)
+        link = YouTubeExtractor.search_youtube_links(track_name)
     except Exception:
         return False, False
     try:
@@ -34,26 +45,32 @@ def scrape_track(name, folder):
         ydl.add_default_info_extractors()
         result = ydl.extract_info(link, download=False)
         found = False
-        for format in result['formats']:
-            if format['ext'] == 'm4a':
-                url = format['url']
-                #TODO: Check Tracker.youtube_code doesn't exist
-                try:
-                    r = requests.get(url, stream=True)
-                    chunk_size = 1000
-                    filename = result['display_id']+'.mp3'
-                    try:
-                        with open('/%s/%s' % (folder, filename,), 'wb') as fd:
-                            for chunk in r.iter_content(chunk_size):
-                                fd.write(chunk)
-                    except Exception:
-                        raise StorageException('Some problem writing file /%s/%s' % (folder, filename))
-                    found = True
-                    break
-                except Exception:
-                    pass
-        if found:
-            return name, '/%s/%s' % (folder, filename,)
+        Track.sync()
+        display_id = result['display_id']
+        exists = Track.objects.filter(youtube_code=display_id).count() > 0
+        # Check Tracker.youtube_code doesn't exist
+        if not exists:
+            for format in result['formats']:
+                    if format['ext'] == 'm4a':
+                        url = format['url']
+                        try:
+                            r = requests.get(url, stream=True)
+                            chunk_size = 1000
+                            filename = result['display_id']+'.mp3'
+                            try:
+                                with open('/%s/%s' % (folder, filename,), 'wb') as fd:
+                                    for chunk in r.iter_content(chunk_size):
+                                        fd.write(chunk)
+                            except Exception:
+                                raise StorageException('Some problem writing file /%s/%s' % (folder, filename))
+                            found = True
+                            break
+                        except Exception:
+                            pass
+            if found:
+                return name, '/%s/%s' % (folder, filename,)
+            else:
+                return False, False
         else:
             return False, False
     except:
@@ -73,7 +90,7 @@ def generate_tracks_import(tracks_list):
 
 @app.task
 def generate_report(results):
-    # TODO DETAIL in log
+    # TODO DETAIL in log (use logger instead of print)
     if results and len(results) > 0:
         print results
         random_sufix = random.randint(1, 10000)
