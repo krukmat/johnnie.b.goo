@@ -147,7 +147,7 @@ class FingerPrintDriver(object):
                                       youtube_code=youtube_code)
                         track.save()
                         # Remove all - (due to limitation in fingerprint-server track_id match)
-                        fingerprint['metadata']['track_id'] = str(track.track_id).replace('-', '_')
+                        fingerprint['metadata']['track_id'] = track.echoprint_id
                     else:
                         # remove duplicate element
                         data.remove(fingerprint)

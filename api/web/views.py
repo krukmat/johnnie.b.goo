@@ -11,6 +11,7 @@ from utils import *
 
 @csrf_exempt
 def ingest(request):
+    # TODO: Add Track object
     params = request.POST
     mp3 = request.FILES['mp3']
     fp_code = generate_fingerprint(mp3)
@@ -33,6 +34,19 @@ def ingest(request):
     else:
         code_string = fp_code
 
+    artist = params.get('artist')
+    release = params.get('release')
+    title = params.get('track')
+    year = params.get('year')
+    youtube_code = params.get('youtube_code')
+    # Track creation
+    track = Track(band=artist, release=release,
+                  name=title,
+                  year=year,
+                  youtube_code=youtube_code)
+    track.save()
+    # Remove all - (due to limitation in fingerprint-server track_id match)
+    track_id = track.echoprint_id
     data = {"track_id": track_id,
             "fp": code_string,
             "length": params['length'],
