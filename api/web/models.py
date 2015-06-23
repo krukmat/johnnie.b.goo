@@ -5,7 +5,7 @@ from cassandra.cqlengine.management import create_keyspace, sync_table, create_k
 
 from django.db import connections
 from fp import *
-from api.web.fp_ext import magic_matches_list
+from fp_ext import magic_matches_list
 
 
 class Track(Model):
@@ -33,13 +33,17 @@ class Track(Model):
     def similar_to(self):
         # TODO: Improve magic_matches_list
         similar_fingerprints = magic_matches_list(self.fpcode)
-        # TODO: Return all Track based on track_id
-        # TODO: Reconvert track_id to uuid
-        # tracks_ids = [fp['track_id'] for fp in similar_fingerprints]
-        # return self.objects.filter()
-        return similar_fingerprints
-
-
+        similar_tracks = []
+        for finger_print in similar_fingerprints:
+            try:
+                track_id = finger_print['track_id'].split('-')[0].replace('_', '-')
+                track = Track.get(track_id=uuid.UUID(track_id))
+                if track.pk == self.pk:
+                    continue
+                similar_tracks.append(track)
+            except Exception, exc:
+                pass
+        return similar_tracks
 
     @classmethod
     def sync(cls, alias='default'):
