@@ -122,7 +122,6 @@ class FingerPrintDriver(object):
         codes_file = '/tmp/allcodes_%s.json' % (random.randint(1, 10000))
         command = '/home/vagrant/echoprint-codegen/echoprint-codegen -s 10 30 < %s > %s' % (file_list, codes_file)
         os.system(command)
-        Track.sync()
         # Create the Track models
         with open(codes_file, 'r') as data_file:
             data = json.load(data_file)
@@ -141,6 +140,7 @@ class FingerPrintDriver(object):
                         fingerprint['metadata']['artist'] = artist
                         fingerprint['metadata']['title'] = title
                         # Track creation
+                        Track.sync()
                         track = Track(band=artist, release=release,
                                       name=title,
                                       year=year,

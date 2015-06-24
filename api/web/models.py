@@ -38,7 +38,8 @@ class Track(Model):
             try:
                 track_id = finger_print['track_id'].split('-')[0].replace('_', '-')
                 track = Track.get(track_id=uuid.UUID(track_id))
-                if track.pk == self.pk:
+                if track.pk == self.pk or (track.pk != self.pk and
+                                           track in similar_tracks):
                     continue
                 similar_tracks.append(track)
             except Exception, exc:
