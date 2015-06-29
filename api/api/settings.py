@@ -151,7 +151,7 @@ CELERY_STORE_ERRORS_EVEN_IF_IGNORED = False
 CELERYD_LOG_FILE = '/var/log/workers.log'
 
 # http://docs.celeryproject.org/en/master/configuration.html#celeryd-task-time-limit
-CELERYD_TASK_SOFT_TIME_LIMIT = 60 * 60  # 5 minutes
+CELERYD_TASK_SOFT_TIME_LIMIT = 60 * 60 * 60  # 5 minutes
 CELERYD_TASK_TIME_LIMIT = CELERYD_TASK_SOFT_TIME_LIMIT + 10
 CELERYD_HIJACK_ROOT_LOGGER = False
 
@@ -164,3 +164,17 @@ TEST_RUNNER = 'django_nose.NoseTestSuiteRunner'
 NOSE_ARGS = ['--verbosity=2', '--with-coverage', '--cover-erase',
              '--cover-html', '--cover-html-dir=/vagrant/python-tests/',
              '--cover-package=web']
+
+import ssl
+from functools import wraps
+
+# workaround for ssl errors based on this issue:
+# https://github.com/rg3/youtube-dl/issues/4578
+def sslwrap(func):
+    @wraps(func)
+    def bar(*args, **kw):
+        kw['ssl_version'] = ssl.PROTOCOL_TLSv1
+        return func(*args, **kw)
+    return bar
+
+ssl.wrap_socket = sslwrap(ssl.wrap_socket)

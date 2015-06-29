@@ -1,0 +1,25 @@
+{
+  "name": "Johnnie B. Goode - Random Player",
+  "version": "0.1",
+  "description": "This is the extension to handle JBG API",
+  "icons": {
+    "128": "images/icon.png",
+    "48": "images/icon.png",
+    "16": "images/icon.png"
+  },
+  "browser_action": {
+    "default_icon": "images/icon.png",
+    "default_popup": "popup.html"
+  },
+  "permissions": ["http://jbg.dev:8088/", "storage", "webRequest", "webRequestBlocking", "*://*.youtube.com/*" ],
+  "content_security_policy": "script-src 'self' 'unsafe-eval' https://www.google-analytics.com/;  object-src 'self'",
+  "content_scripts": [
+    {
+        "all_frames": true,
+        "matches": ["*://*.youtube.com/*"],
+        "js": ["jquery.js", "popup.js"]
+    }
+  ],
+  "manifest_version": 2,
+  "options_page": "options.html"
+}

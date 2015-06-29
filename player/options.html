@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="bootstrap/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="bootstrap/css/bootstrap-theme.min.css">
+  <script src="jquery.js"></script>
+  <script src="bootstrap/js/bootstrap.min.js"></script>
+  <script src="bootstrap/bootstrap-multiselect-master/dist/js/bootstrap-multiselect.js"></script>
+  <link rel="stylesheet" href="bootstrap/bootstrap-multiselect-master/dist/css/bootstrap-multiselect.css" type="text/css"/>
+  <style>
+    body { width: 300px; }
+  </style>
+</head>
+<body>
+
+Favorite color:
+<select id="api" multiple="multiple">
+ <option value="http://www.songsterr.com/a/wa/search?pattern=">Songsterr</option>
+ <option value="https://www.google.com.ar/?q=">Google</option>
+ <option value="http://www.bing.com/search?q=">Bing</option>
+ <option value="https://duckduckgo.com/?q=">DuckDuck</option>
+</select>
+
+<div id="status"></div>
+<button id="save">Save</button>
+
+<script src="options.js"></script>
+</body>
+</html>

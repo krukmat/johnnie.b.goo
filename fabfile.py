@@ -156,6 +156,26 @@ def restart_supervisor():
 
 
 @task
+def supervisor(command, *processes):
+    """Usage: `fab <env> supervisor:"<command>,<process1>,<process2>,..."`"""
+    if command in ('start', 'stop', 'restart', 'status'):
+        if processes:
+            processes = set(processes).intersection(env.supervisor_apps)
+        else:
+            processes = env.supervisor_apps
+
+        if processes:
+                for process_name in processes:
+                    run('sudo supervisorctl %s %s:' % (command, process_name))
+
+        else:
+            _print(red('No valid processes specified, aborting.', bold=True))
+
+    else:
+        _print(red('Unknown supervisor command: %s, aborting.' % command,
+                   bold=True))
+
+@task
 def configure_nginx():
     """Configure nginx"""
     require_env('django_static_url', 'django_static_root', 'cdn_static_root',

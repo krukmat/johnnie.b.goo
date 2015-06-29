@@ -46,6 +46,14 @@ class Track(Model):
                 pass
         return similar_tracks
 
+    @property
+    def as_json(self):
+        return dict(band=self.band,
+                    name=self.name,
+                    release=self.release,
+                    youtube_code=self.youtube_code,
+                    year=self.year)
+
     @classmethod
     def sync(cls, alias='default'):
         connection = connections[alias]

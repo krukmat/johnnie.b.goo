@@ -17,12 +17,14 @@ import youtube_dl
 from djcelery.app import app
 from models import Track
 
+# TODO: Implement some catching up soft time out exception so all the files are removed
+
 class StorageException(Exception):
     pass
 
 @app.task
 def scrape_track(name, folder):
-    # TODO DETAIL in log
+    # TODO DETAIL in logger
     name_parts = name.split('-')
     if len(name_parts) == 4:
         year = name_parts[0]
@@ -90,7 +92,7 @@ def generate_tracks_import(tracks_list):
 
 @app.task
 def generate_report(results):
-    # TODO DETAIL in log (use logger instead of print)
+    # TODO DETAIL in logger (instead of print)
     if results and len(results) > 0:
         print results
         random_sufix = random.randint(1, 10000)

@@ -104,3 +104,15 @@ def bulk_process(request):
         else:
             generate_tracks_import.delay(artists_list)
     return HttpResponse('OK', status=200)
+
+
+@csrf_exempt
+def roulette_track(request):
+    """ Returns a random track
+    """
+    index_track = random.randint(0, Track.objects.all().count())
+    track = Track.objects.all()[index_track]
+    tracks = track.similar_to
+    results = [ob.as_json for ob in tracks]
+    return HttpResponse(json.dumps(results), status=200)
+
