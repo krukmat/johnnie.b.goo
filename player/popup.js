@@ -4,19 +4,17 @@
 
 var QUERY_URL = 'http://jbg.dev:8080/roulette_track/';
 var APIs = [];
+var done = false;
+var index = 0;
+var id_list = [];
+var player;
 
-
-function onPlay(event) {
- var player = this;
- timeout = setInterval(function () {
-   console.log(player.p.getCurrentTime());
- }, 500);
+function onPlayerReady(event) {
+    event.target.loadPlaylist(id_list);
 }
 
-function onPause(event) {
-  clearInterval(timeout);
+function onPlayerStateChange(event) {
 }
-
 
 function query() {
     var formData = new FormData();
@@ -28,23 +26,32 @@ function query() {
       if (object.error !== undefined)
           $('#response').text(object.error);
       else{
-          $('#response').text(data);
-          var id_list = [];
+          // $('#response').text(data);
           for (var i in object){
             id_list.push(object[i].youtube_code);
           }
-          $('#player').player({
-              video: id_list[0],
-              events: {
-                play: onPlay,
-                pause: onPause,
-                end: onPause
-              }
-          });
-          $('#playlist').tube({
-            player: 'player-container',
-            list: [id_list]
-          });
+          var player;
+          var tag = document.createElement('script');
+          tag.src = "https://www.youtube.com/player_api";
+          var firstScriptTag = document.getElementsByTagName('script')[0];
+          firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+          window.onYouTubePlayerAPIReady = function() {
+              done = false;
+              player = new YT.Player('player', {
+                  height: '300',
+                  width: '300',
+                  loadPlaylist:{
+                    listType:'playlist',
+                    list: id_list,
+                    index:parseInt(0),
+                    suggestedQuality:'small'
+                 },
+                  events: {
+                    'onReady': onPlayerReady,
+                    'onStateChange': onPlayerStateChange
+                  }
+              });
+          }
       }
     });
 }

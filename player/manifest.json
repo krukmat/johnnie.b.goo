@@ -12,14 +12,17 @@
     "default_popup": "popup.html"
   },
   "permissions": ["http://jbg.dev:8088/", "storage", "webRequest", "webRequestBlocking", "*://*.youtube.com/*" ],
-  "content_security_policy": "script-src 'self' 'unsafe-eval' https://www.google-analytics.com/;  object-src 'self'",
+  "content_security_policy": "script-src 'self' 'unsafe-eval' https://*.youtube.com/ https://s.ytimg.com/;  object-src 'self'",
   "content_scripts": [
     {
         "all_frames": true,
         "matches": ["*://*.youtube.com/*"],
-        "js": ["jquery.js", "popup.js"]
+        "js": ["popup.js"]
     }
   ],
+  "externally_connectable": {
+      "matches": ["*://*.youtube.com/*"]
+  },
   "manifest_version": 2,
   "options_page": "options.html"
 }
