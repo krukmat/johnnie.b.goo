@@ -13,3 +13,4 @@ mock==1.0.1
 django-nose==1.4
 django-cassandra-engine==0.3.3
 coverage==4.0a5
+requests[security]

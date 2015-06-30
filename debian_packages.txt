@@ -13,3 +13,5 @@ sox
 libsox-fmt-mp3
 rabbitmq-server
 redis-server
+libffi-dev
+libssl-dev

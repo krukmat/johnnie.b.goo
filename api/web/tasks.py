@@ -42,7 +42,7 @@ def scrape_track(name, folder):
         return False, False
     try:
         # search in youtube based on en artist - track
-        ydl = youtube_dl.YoutubeDL({'outtmpl': '%(id)s%(ext)s'})
+        ydl = youtube_dl.YoutubeDL({'outtmpl': '%(id)s%(ext)s', 'noplaylist': '--no-playlist'})
         # Add all the available extractors
         ydl.add_default_info_extractors()
         result = ydl.extract_info(link, download=False)
