@@ -16,3 +16,9 @@ Google Chrome Extension:
 * Open Chrome Browser
 * Window -> Extensions -> Load Unpacked Extension -> /project_path/johnnie.b.goo/chrome-extension
 * You'll see a cool guitar in your toolbar ;)
+
+
+Architecture:
+------------
+![alt tag](https://raw.github.com/krukmat/johnnie.b.goo/master/docs/architecture.png)
+![alt tag](https://raw.github.com/krukmat/johnnie.b.goo/master/docs/images/architecture2.png)
