@@ -21,4 +21,4 @@ Google Chrome Extension:
 Architecture:
 ------------
 ![alt tag](https://raw.github.com/krukmat/johnnie.b.goo/master/docs/architecture.png)
-![alt tag](https://raw.github.com/krukmat/johnnie.b.goo/master/docs/images/architecture2.png)
+![alt tag](https://raw.github.com/krukmat/johnnie.b.goo/master/docs/architecture2.png)
