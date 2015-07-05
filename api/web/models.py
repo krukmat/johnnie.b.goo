@@ -1,7 +1,12 @@
 import uuid
 from cassandra.cqlengine.models import Model
 from cassandra.cqlengine import columns
-from cassandra.cqlengine.management import create_keyspace, sync_table, create_keyspace_simple
+from cassandra.cqlengine.management import sync_table, create_keyspace_simple
+from cassandra.cqlengine import connection
+from cassandra.cqlengine.connection import (
+    cluster as cql_cluster, session as cql_session)
+from cassandra.auth import PlainTextAuthProvider
+from cassandra.cluster import NoHostAvailable
 
 from django.db import connections
 from fp import *
@@ -55,14 +60,19 @@ class Track(Model):
                     year=self.year)
 
     @classmethod
-    def sync(cls, alias='default'):
-        connection = connections[alias]
-        connection.connect()
-        options = connection.settings_dict.get('OPTIONS', {})
-        keyspace = connection.settings_dict['NAME']
-        replication_opts = options.get('replication', {})
-        # strategy_class = replication_opts.pop('strategy_class',
-        #                                      'SimpleStrategy')
-        replication_factor = replication_opts.pop('replication_factor', 1)
-        create_keyspace_simple(keyspace, replication_factor)
-        sync_table(cls)
+    def sync(cls):
+        try:
+            cassandra_host = connections['default'].settings_dict['HOST'].split(',')
+            keyspace = connections['default'].settings_dict['NAME']
+            user = connections['default'].settings_dict['USER']
+            password = connections['default'].settings_dict['PASSWORD']
+            auth_provider = PlainTextAuthProvider(username=user, password=password)
+
+            if cql_cluster is not None:
+                cql_cluster.shutdown()
+            if cql_session is not None:
+                cql_session.shutdown()
+            connection.setup(cassandra_host, keyspace, auth_provider=auth_provider)
+            sync_table(cls)
+        except NoHostAvailable:
+            pass
